@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -134,7 +136,21 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 			return nil, status.Errorf(codes.Internal, "failed to get next page token, error: %v", err)
 		}
 	}
+	user, err := s.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get user")
+	}
+
 	for _, memo := range memos {
+		// Hide the content if the memo is private and the user is not the creator or admin.
+		if user == nil || (memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user)) {
+			// Hide the memo if the `content_search` is not empty and the hidden content contains `content_search`
+			if len(memoFind.ContentSearch) > 0 && hasKeyInHidden(memo.Content, memoFind.ContentSearch) {
+				continue
+			}
+			memo.Content = processHiddenContent(memo.Content)
+		}
+
 		memoMessage, err := s.convertMemoFromStore(ctx, memo)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert memo")
@@ -194,8 +210,8 @@ func (s *APIV1Service) GetMemoByUid(ctx context.Context, request *v1pb.GetMemoBy
 	if memo == nil {
 		return nil, status.Errorf(codes.NotFound, "memo not found")
 	}
+	user, err := s.GetCurrentUser(ctx)
 	if memo.Visibility != store.Public {
-		user, err := s.GetCurrentUser(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get user")
 		}
@@ -205,6 +221,10 @@ func (s *APIV1Service) GetMemoByUid(ctx context.Context, request *v1pb.GetMemoBy
 		if memo.Visibility == store.Private && memo.CreatorID != user.ID {
 			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 		}
+	}
+
+	if user == nil || (memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user)) {
+		memo.Content = processHiddenContent(memo.Content)
 	}
 
 	memoMessage, err := s.convertMemoFromStore(ctx, memo)
@@ -703,4 +723,113 @@ func substring(s string, length int) string {
 	}
 
 	return s[:byteIndex]
+}
+
+// 处理隐藏内容的辅助函数
+// 规则:
+// 1. 行内隐藏内容 :::hide hidden content:::
+// `[hide-inline]`
+// 2. 行内隐藏内容,带属性 :::hide{foo=foo;bar=bar} hidden content:::
+// `[hide-inline{foo:foo,bar:bar}]`
+// 3. 块级隐藏内容
+// :::hide{foo=foo;bar=bar}
+// hidden content
+// hidden content
+// :::
+// `[hide-block{foo:foo,bar:bar}]`
+func processHiddenContent(content string) string {
+	// Match block hidden content with optional attributes
+	blockRe := regexp.MustCompile(`(?s):::hide(?:\{([^}]*)\})?\n(.*?)\n:::`)
+	processedContent := blockRe.ReplaceAllStringFunc(content, func(match string) string {
+		parts := blockRe.FindStringSubmatch(match)
+		if len(parts) > 1 && parts[1] != "" {
+			// Convert attributes from foo=bar;baz=qux format to {foo:bar,baz:qux}
+			attrs := strings.Split(parts[1], ";")
+			attrMap := make([]string, 0)
+			for _, attr := range attrs {
+				kv := strings.Split(attr, "=")
+				if len(kv) == 2 {
+					attrMap = append(attrMap, fmt.Sprintf("%s:%s", kv[0], kv[1]))
+				}
+			}
+			if len(attrMap) > 0 {
+				return fmt.Sprintf("[hide-block{%s}]", strings.Join(attrMap, ","))
+			}
+		}
+		return "[hide-block]"
+	})
+
+	// Match inline hidden content with optional attributes
+	inlineRe := regexp.MustCompile(`:::hide(?:\{([^}]*)\})?\s+(.*?):::`)
+	processedContent = inlineRe.ReplaceAllStringFunc(processedContent, func(match string) string {
+		parts := inlineRe.FindStringSubmatch(match)
+		if len(parts) > 1 && parts[1] != "" {
+			// Convert attributes from foo=bar;baz=qux format to {foo:bar,baz:qux}
+			attrs := strings.Split(parts[1], ";")
+			attrMap := make([]string, 0)
+			for _, attr := range attrs {
+				kv := strings.Split(attr, "=")
+				if len(kv) == 2 {
+					attrMap = append(attrMap, fmt.Sprintf("%s:%s", kv[0], kv[1]))
+				}
+			}
+			if len(attrMap) > 0 {
+				return fmt.Sprintf("[hide-inline{%s}]", strings.Join(attrMap, ","))
+			}
+		}
+		return "[hide-inline]"
+	})
+
+	return processedContent
+}
+
+// 判断隐藏内容是否包含关键字
+// 1 hasKeyInHidden("This is :::hide hidden content:::", ["hidden"])
+// true
+// 2 hasKeyInHidden("This is :::hide{foo=foo} hidden content:::", ["hidden"])
+// true
+// 3 hasKeyInHidden("This is :::hide hidden content:::", ["visible"])
+// false
+// 4 hasKeyInHidden("This is :::hide
+// hidden content
+// :::", ["hidden"])
+// true
+// 5 hasKeyInHidden("This is :::hide{foo=foo}
+// hidden content
+// :::", ["hidden"])
+// true
+func hasKeyInHidden(content string, keywords []string) bool {
+	// Match block hidden content with optional attributes
+	blockRe := regexp.MustCompile(`(?s):::hide(?:\{[^}]*\})?\n(.*?)\n:::`)
+	// Extract hidden content from blocks
+	blockContent := blockRe.FindAllStringSubmatch(content, -1)
+
+	// Match inline hidden content with optional attributes
+	inlineRe := regexp.MustCompile(`:::hide(?:\{[^}]*\})?\s+(.*?):::`)
+	// Extract hidden content from inline
+	inlineContent := inlineRe.FindAllStringSubmatch(content, -1)
+
+	// Check keywords in block content
+	for _, matches := range blockContent {
+		if len(matches) > 1 {
+			for _, keyword := range keywords {
+				if strings.Contains(matches[1], keyword) {
+					return true
+				}
+			}
+		}
+	}
+
+	// Check keywords in inline content
+	for _, matches := range inlineContent {
+		if len(matches) > 1 {
+			for _, keyword := range keywords {
+				if strings.Contains(matches[1], keyword) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }

@@ -16,7 +16,7 @@ const HiddenContent: React.FC<Props> = ({ mode = "inline", text = "", descriptio
             🔒
           </span>
           <span className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-teal-700 dark:text-teal-300">{text || "需要权限才能查看"}</span>
+            <span className="text-sm font-medium text-teal-700 dark:text-teal-300">{text || "此处内容已隐藏"}</span>
             <span className="text-xs text-teal-500 dark:text-teal-400/70">{description || "请联系管理员获取查看权限"}</span>
           </span>
         </span>
@@ -30,7 +30,7 @@ const HiddenContent: React.FC<Props> = ({ mode = "inline", text = "", descriptio
       <span role="img" aria-label="hidden" className="text-[0.9em] text-teal-500/70 dark:text-teal-400/70">
         🔒
       </span>
-      <span className="text-[0.9em] text-teal-700 dark:text-teal-300">{text || "已隐藏"}</span>
+      <span className="text-[0.9em] text-teal-700 dark:text-teal-300">{text || "内容已隐藏"}</span>
     </span>
   );
 };

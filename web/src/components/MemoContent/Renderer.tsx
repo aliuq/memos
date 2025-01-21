@@ -93,7 +93,6 @@ const resolveNode = (node: Node) => {
       attributes: /\[hide-(?:inline|block)(\{[^}]*\})\]/,
     };
     const content = node.textNode?.content;
-    console.log(content);
 
     if (content?.startsWith(":::hide")) {
       HIDDEN_FLAG = true;

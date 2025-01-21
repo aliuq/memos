@@ -15,13 +15,14 @@ import { WorkspaceSettingKey } from "@/types/proto/store/workspace_setting";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityToString } from "@/utils/memo";
 import { isSuperUser } from "@/utils/user";
+// import MemoResourceListView from "./MemoResourceListView";
+import AMemoResourceListView from "./AMemoResourceListView";
 import MemoActionMenu from "./MemoActionMenu";
 import MemoContent from "./MemoContent";
 import MemoEditor from "./MemoEditor";
 import MemoLocationView from "./MemoLocationView";
 import MemoReactionistView from "./MemoReactionListView";
 import MemoRelationListView from "./MemoRelationListView";
-import MemoResourceListView from "./MemoResourceListView";
 import showPreviewImageDialog from "./PreviewImageDialog";
 import ReactionSelector from "./ReactionSelector";
 import UserAvatar from "./UserAvatar";
@@ -223,7 +224,8 @@ const MemoView: React.FC<Props> = (props: Props) => {
             parentPage={parentPage}
           />
           {memo.location && <MemoLocationView location={memo.location} />}
-          <MemoResourceListView resources={memo.resources} />
+          {/* <MemoResourceListView resources={memo.resources} /> */}
+          <AMemoResourceListView resources={memo.resources} />
           <MemoRelationListView memo={memo} relations={referencedMemos} parentPage={parentPage} />
           <MemoReactionistView memo={memo} reactions={memo.reactions} />
         </>

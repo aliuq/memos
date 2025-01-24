@@ -4,8 +4,8 @@ import showPreviewImageDialog from "@/components/PreviewImageDialog";
 import { getResourceType, getResourceUrl } from "@/utils/resource";
 import { useResourceContext } from "../context/ResourceContext";
 import { LazyImage } from "./LazyImage";
-import { ThumbnailList } from "./ThumbnailList";
-import { VideoPlayer } from "./VideoPlayer";
+import { ThumbnailList } from "./Thumbnail";
+import { VideoPlayer } from "./Video";
 
 export const ExpandedView = memo(() => {
   const { resources, activeIndex, setActiveIndex, setRotation, setShowVideo } = useResourceContext();
@@ -13,6 +13,7 @@ export const ExpandedView = memo(() => {
   const resourceUrl = getResourceUrl(activeResource);
   const type = getResourceType(activeResource);
   const isSingleVideo = resources.length === 1 && type === "video/*";
+  const isSinglePhoto = resources.length === 1 && type === "image/*";
   const [cursorArea, setCursorArea] = useState<"left" | "center" | "right" | null>(null);
 
   const handleAreaClick = useCallback(
@@ -117,31 +118,39 @@ export const ExpandedView = memo(() => {
   }, [activeIndex, resources.length, handleCollapse, setActiveIndex]);
 
   return (
-    <div className="w-full flex flex-col gap-2">
-      {type !== "video/*" && (
-        <div className="flex items-center gap-2">
+    <div className="w-full flex flex-col">
+      {/* 主视图区域 */}
+      <div className="w-full flex rounded-xl overflow-hidden justify-center items-center relative">
+        {/* 功能按钮组 */}
+        <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
           <button
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg text-gray-600 dark:text-gray-300 
-              bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-800 
-              shadow-sm backdrop-blur transition-all duration-200 hover:shadow-md"
+            className="p-2 rounded-lg bg-black/50 hover:bg-black/60 text-white backdrop-blur transition-colors"
             onClick={handleCollapse}
           >
-            <MinimizeIcon className="w-4 h-4" />
-            <span className="font-medium">收起</span>
+            <MinimizeIcon className="w-5 h-5" />
           </button>
-          <button
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg text-gray-600 dark:text-gray-300
-              bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-800
-              shadow-sm backdrop-blur transition-all duration-200 hover:shadow-md"
-            onClick={handlePreview}
-          >
-            <ZoomInIcon className="w-4 h-4" />
-            <span className="font-medium">查看大图</span>
-          </button>
-        </div>
-      )}
 
-      <div className="w-full flex rounded-xl overflow-hidden justify-center items-center relative">
+          <div className="flex items-center gap-2">
+            {/* 索引显示 */}
+            {resources.length > 1 && (
+              <div className="px-2 py-1 rounded-lg bg-black/50 backdrop-blur text-white text-sm">
+                {activeIndex + 1}/{resources.length}
+              </div>
+            )}
+
+            {/* 查看大图按钮 */}
+            {type !== "video/*" && (
+              <button
+                className="p-2 rounded-lg bg-black/50 hover:bg-black/60 text-white backdrop-blur transition-colors"
+                onClick={handlePreview}
+              >
+                <ZoomInIcon className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 图片/视频显示区域 */}
         {type === "image/*" ? (
           <div
             className="relative w-full flex justify-center select-none"
@@ -150,14 +159,15 @@ export const ExpandedView = memo(() => {
             onMouseLeave={() => setCursorArea(null)}
             style={cursorStyle}
           >
-            <LazyImage src={resourceUrl} alt="" className="w-auto" />
+            <LazyImage src={resourceUrl} alt="" className="w-full" />
           </div>
         ) : (
           <VideoPlayer resource={activeResource} autoPlay={isSingleVideo} />
         )}
       </div>
 
-      {!isSingleVideo && <ThumbnailList />}
+      {/* 缩略图列表 */}
+      {!isSingleVideo && !isSinglePhoto && <ThumbnailList />}
     </div>
   );
 });

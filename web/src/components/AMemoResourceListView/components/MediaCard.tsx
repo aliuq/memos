@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Resource } from "@/types/proto/api/v1/resource_service";
 import { getResourceType, getResourceUrl } from "@/utils/resource";
 import { LazyImage } from "./LazyImage";
-import { VideoPreview } from "./VideoPreview";
+import { VideoPreview } from "./Video";
 
 interface MediaCardProps {
   length: number;
@@ -17,7 +17,7 @@ export const MediaCard = memo(({ length, resource, onClick }: MediaCardProps) =>
   if (type === "image/*") {
     return (
       <LazyImage
-        className="object-cover size-full hover:opacity-90 transition-opacity"
+        className={`hover:opacity-90 transition-opacity ${length === 1 ? "size-auto object-contain" : "size-full object-cover"}`}
         src={resource.externalLink ? resourceUrl : resourceUrl + "?thumbnail=true"}
         onClick={onClick}
       />

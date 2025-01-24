@@ -48,11 +48,9 @@ const MemoResourceListView = ({ resources = [] }: { resources: Resource[] }) => 
               <ExpandedView />
             </ResourceErrorBoundary>
           ) : (
-            <div className={resources.length === 1 ? "w-full" : "w-full sm:w-[400px]"}>
-              <ResourceErrorBoundary>
-                <GridView resources={mediaResources} onSelect={setActiveIndex} />
-              </ResourceErrorBoundary>
-            </div>
+            <ResourceErrorBoundary>
+              <GridView resources={mediaResources} onSelect={setActiveIndex} />
+            </ResourceErrorBoundary>
           )}
 
           {otherResources.length > 0 && (

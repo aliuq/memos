@@ -175,21 +175,15 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 			return nil, status.Errorf(codes.Internal, "failed to get next page token, error: %v", err)
 		}
 	}
-	user, err := s.GetCurrentUser(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get user")
-	}
-
 	for _, memo := range memos {
 		// Hide the content if the memo is private and the user is not the creator or admin.
-		if user == nil || (memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user)) {
+		if currentUser == nil || (memo.Visibility == store.Private && memo.CreatorID != currentUser.ID && !isSuperUser(currentUser)) {
 			// Hide the memo if the `content_search` is not empty and the hidden content contains `content_search`
 			if len(memoFind.ContentSearch) > 0 && hasKeyInHidden(memo.Content, memoFind.ContentSearch) {
 				continue
 			}
 			memo.Content = processHiddenContent(memo.Content)
 		}
-
 		memoMessage, err := s.convertMemoFromStore(ctx, memo)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert memo")

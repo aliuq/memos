@@ -103,7 +103,6 @@ export function resolveNode(node: Node) {
             const { action, mode, attributes } = match.groups || {};
             const attrs = extractAttributes(attributes);
             finalContent = "";
-            console.log(`Parsed attributes for [${action}-${mode}] content:`, attrs);
 
             if (action === "hide") {
               const { text, placeholder, ...restAttr } = attrs;

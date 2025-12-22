@@ -109,15 +109,22 @@ func (s *APIV1Service) convertMemoRelationFromStore(ctx context.Context, memoRel
 	if err != nil {
 		return nil, err
 	}
-	memoSnippet, err := getMemoContentSnippet(memo.Content)
+
+	// Always process hidden content in relation snippets, regardless of user permissions
+	memoContent := processHiddenContent(memo.Content)
+	memoSnippet, err := getMemoContentSnippet(memoContent)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get memo content snippet")
 	}
+
 	relatedMemo, err := s.Store.GetMemo(ctx, &store.FindMemo{ID: &memoRelation.RelatedMemoID})
 	if err != nil {
 		return nil, err
 	}
-	relatedMemoSnippet, err := getMemoContentSnippet(relatedMemo.Content)
+
+	// Always process hidden content in relation snippets, regardless of user permissions
+	relatedMemoContent := processHiddenContent(relatedMemo.Content)
+	relatedMemoSnippet, err := getMemoContentSnippet(relatedMemoContent)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get related memo content snippet")
 	}

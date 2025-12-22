@@ -1,0 +1,70 @@
+name: Build Custom Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag for the custom image"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare variables
+        id: vars
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ inputs.version }}'
+            const semverRegex = /^v?\d+\.\d+\.\d+(-\S+)?$/
+
+            if (!semverRegex.test(version)) {
+              core.setFailed(`Invalid version format: ${version}. Expected format: X.Y.Z or vX.Y.Z`)
+              return
+            }
+
+            core.setOutput('version', version);
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/aliuq/memos
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.vars.outputs.version }}
+          labels: |
+            org.opencontainers.image.upstream=https://github.com/usememos/memos
+          annotations: |
+            org.opencontainers.image.upstream=https://github.com/usememos/memos
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          use: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

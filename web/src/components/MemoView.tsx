@@ -2,6 +2,7 @@ import { Tooltip } from "@mui/joy";
 import { BookmarkIcon, MessageCircleMoreIcon } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import MemoResourceListView from "@/forked/components/MemoResourceListView";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useNavigateTo from "@/hooks/useNavigateTo";
@@ -15,8 +16,6 @@ import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityToString, memoLink } from "@/utils/memo";
 import { isSuperUser } from "@/utils/user";
-// import MemoResourceListView from "./MemoResourceListView";
-import AMemoResourceListView from "./AMemoResourceListView";
 import MemoActionMenu from "./MemoActionMenu";
 import MemoContent from "./MemoContent";
 import MemoEditor from "./MemoEditor";
@@ -224,8 +223,7 @@ const MemoView: React.FC<Props> = (props: Props) => {
             parentPage={parentPage}
           />
           {memo.location && <MemoLocationView location={memo.location} />}
-          {/* <MemoResourceListView resources={memo.resources} /> */}
-          <AMemoResourceListView resources={memo.resources} />
+          <MemoResourceListView resources={memo.resources} />
           <MemoRelationListView memo={memo} relations={referencedMemos} parentPage={parentPage} />
           <MemoReactionistView memo={memo} reactions={memo.reactions} />
         </>

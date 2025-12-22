@@ -1,7 +1,7 @@
 import { memo, useState, useMemo } from "react";
+import MemoResource from "@/components/MemoResource";
 import { Resource } from "@/types/proto/api/v1/resource_service";
 import { getResourceType } from "@/utils/resource";
-import MemoResource from "../MemoResource";
 import { ExpandedView } from "./components/ExpandedView";
 import { GridView } from "./components/GridView";
 import { ResourceErrorBoundary } from "./components/ResourceErrorBoundary";

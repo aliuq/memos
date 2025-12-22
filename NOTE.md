@@ -5,6 +5,8 @@ ref: <https://github.com/usememos/memos>
 
 ## Difference
 
+repo: <https://github.com/aliuq/memos>
+
 1. Enhanced media display
 2. Content hiding
 

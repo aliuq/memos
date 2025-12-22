@@ -6,6 +6,11 @@ on:
       version:
         description: "Version tag for the custom image"
         required: true
+      push:
+        description: "Push the built image to GitHub/DockerHub Container Registry"
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -63,7 +68,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
-          push: false
+          push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

@@ -22,12 +22,12 @@ docker run --rm --name memos -p 15230:5230 -v ./build:/var/opt/memos memos:dev
 
 <details><summary>Details</summary>
 <p>
- <img src="./screenshots/media-1.png" width="33%" alt="media-1" />
- <img src="./screenshots/media-2.png" width="33%" alt="media-2" />
- <img src="./screenshots/media-3.png" width="33%" alt="media-3" />
+ <img src="https://raw.githubusercontent.com/aliuq/memos/refs/heads/main/screenshots/media-1.png" width="33%" alt="media-1" />
+ <img src="https://raw.githubusercontent.com/aliuq/memos/refs/heads/main/screenshots/media-2.png" width="33%" alt="media-2" />
+ <img src="https://raw.githubusercontent.com/aliuq/memos/refs/heads/main/screenshots/media-3.png" width="33%" alt="media-3" />
 </p>
 
 <p>
- <img src="./screenshots/hidden-1.png" width="33%" alt="hidden-1" />
+ <img src="https://raw.githubusercontent.com/aliuq/memos/refs/heads/main/screenshots/hidden-1.png" width="33%" alt="hidden-1" />
 </p>
 </details>

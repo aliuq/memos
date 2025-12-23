@@ -91,7 +91,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: aliuq/memos
-          short-description: "An open-source, self-hosted note-taking service. Your thoughts, your data, your control — no tracking, no ads, no subscription fees."
+          short-description: "An open-source, self-hosted note-taking service. Your thoughts, your data, your control"
           readme-filepath: ./NOTE.md
 
       - name: Notification

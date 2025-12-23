@@ -176,14 +176,15 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 		}
 	}
 	for _, memo := range memos {
-		// Hide the content if the memo is private and the user is not the creator or admin.
-		if currentUser == nil || (memo.Visibility == store.Private && memo.CreatorID != currentUser.ID && !isSuperUser(currentUser)) {
-			// Hide the memo if the `content_search` is not empty and the hidden content contains `content_search`
-			if len(memoFind.ContentSearch) > 0 && hasKeyInHidden(memo.Content, memoFind.ContentSearch) {
-				continue
-			}
+		// Process 1: 处理隐藏内容，条件是 a-非本人以外的所有访问都需要处理
+		if currentUser == nil || memo.CreatorID != currentUser.ID {
 			memo.Content = processHiddenContent(memo.Content)
 		}
+		// Process 2: 搜索过滤，条件是 a-有搜索内容 b-搜索内容在处理后的内容中出现过
+		if len(memoFind.ContentSearch) > 0 && !stringContainsOneOfKeywords(memo.Content, memoFind.ContentSearch) {
+			continue
+		}
+
 		memoMessage, err := s.convertMemoFromStore(ctx, memo)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert memo")
@@ -225,7 +226,8 @@ func (s *APIV1Service) GetMemo(ctx context.Context, request *v1pb.GetMemoRequest
 		}
 	}
 
-	if user == nil || (memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user)) {
+	// Process 1: 处理隐藏内容，条件是 a-非本人以外的所有访问都需要处理
+	if user == nil || memo.CreatorID != user.ID {
 		memo.Content = processHiddenContent(memo.Content)
 	}
 
@@ -704,6 +706,9 @@ func getMemoContentSnippet(content string) (string, error) {
 	}
 
 	plainText := renderer.NewStringRenderer().Render(nodes)
+	// Snippet 默认需要处理隐藏内容
+	plainText = processHiddenContent(plainText)
+
 	if len(plainText) > 64 {
 		return substring(plainText, 64) + "...", nil
 	}
@@ -835,5 +840,16 @@ func hasKeyInHidden(content string, keywords []string) bool {
 		}
 	}
 
+	return false
+}
+
+// stringContainsOneOfKeywords reports whether s contains any of the provided keywords.
+// 检查为区分大小写的子串匹配；若 s 包含任一关键字则返回 true。
+func stringContainsOneOfKeywords(s string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(s, keyword) {
+			return true
+		}
+	}
 	return false
 }

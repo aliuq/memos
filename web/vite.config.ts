@@ -19,6 +19,7 @@ export default defineConfig({
     }),
     codeInspectorPlugin({
       bundler: "vite",
+      ip: true,
     }),
   ],
   server: {

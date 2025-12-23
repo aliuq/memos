@@ -18,7 +18,7 @@ export const GridView = memo(({ resources, onSelect }: GridViewProps) => {
     return (
       <div
         className={`flex justify-center items-center border dark:border-zinc-800 overflow-hidden hide-scrollbar hover:shadow-md ${
-          isImage ? "w-full sm:w-2/5 max-h-[400px] cursor-zoom-in" : "w-full aspect-video cursor-pointer"
+          isImage ? "w-2/5 max-h-[400px] cursor-zoom-in" : "w-full aspect-video cursor-pointer"
         }`}
       >
         <MediaCard length={1} resource={resources[0]} onClick={() => onSelect(0)} />

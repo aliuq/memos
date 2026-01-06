@@ -26,6 +26,8 @@ interface RenderMediaProps {
   len: number;
   remainingCount?: number;
   isLast: boolean;
+  alt?: string;
+  filename: string;
 }
 
 type DataSource = SlideData & {
@@ -326,7 +328,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     };
 
     return (
-      <LazyImage src={url} id={resourceId} filename={resource.filename}>
+      <LazyImage src={url} id={resourceId} alt={props.alt} filename={props.filename}>
         {({ containerRef, content, containerProps, dimensions }) => {
           return (
             <div
@@ -399,6 +401,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       len: dataSources.length,
       remainingCount,
       isLast: dataSource.isLast,
+      alt: dataSource.alt,
+      filename: dataSource.filename,
     };
 
     if (!dataSource.type) return null;

@@ -1,70 +1,40 @@
-import { memo, useState, useMemo } from "react";
+import { memo } from "react";
 import MemoResource from "@/components/MemoResource";
 import { Resource } from "@/types/proto/api/v1/resource_service";
 import { getResourceType } from "@/utils/resource";
-import { ExpandedView } from "./components/ExpandedView";
-import { GridView } from "./components/GridView";
-import { ResourceErrorBoundary } from "./components/ResourceErrorBoundary";
-import { ResourceProvider } from "./context/ResourceContext";
+import GridView from "./components/GridView";
 
 const MemoResourceListView = ({ resources = [] }: { resources: Resource[] }) => {
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [rotation, setRotation] = useState(0);
-  const [showVideo, setShowVideo] = useState(false);
+  const mediaResources: Resource[] = [];
+  const otherResources: Resource[] = [];
 
-  const mediaResources = useMemo(() => {
-    return resources.filter((resource) => {
-      const type = getResourceType(resource);
-      return type === "image/*" || type === "video/*";
-    });
-  }, [resources]);
+  resources.forEach((resource) => {
+    const type = getResourceType(resource);
+    if (type === "image/*" || type === "video/*") {
+      mediaResources.push(resource);
+      return;
+    }
 
-  const otherResources = useMemo(() => {
-    return resources.filter((resource) => {
-      const type = getResourceType(resource);
-      return type !== "image/*" && type !== "video/*";
-    });
-  }, [resources]);
+    otherResources.push(resource);
+  });
 
-  const contextValue = useMemo(
-    () => ({
-      activeIndex,
-      setActiveIndex,
-      rotation,
-      setRotation,
-      showVideo,
-      setShowVideo,
-      resources: mediaResources,
-    }),
-    [activeIndex, rotation, showVideo, mediaResources],
-  );
+  const OtherList = ({ resources = [] }: { resources: Resource[] }) => {
+    if (resources.length === 0) return <></>;
+
+    return (
+      <div className="w-full flex flex-row justify-start overflow-auto gap-2">
+        {otherResources.map((resource) => (
+          <MemoResource key={resource.name} resource={resource} />
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <ResourceErrorBoundary>
-      <ResourceProvider value={contextValue}>
-        <div className="w-full flex flex-col gap-4">
-          {activeIndex >= 0 ? (
-            <ResourceErrorBoundary>
-              <ExpandedView />
-            </ResourceErrorBoundary>
-          ) : (
-            <ResourceErrorBoundary>
-              <GridView resources={mediaResources} onSelect={setActiveIndex} />
-            </ResourceErrorBoundary>
-          )}
-
-          {otherResources.length > 0 && (
-            <div className="w-full flex flex-row flex-wrap gap-2">
-              {otherResources.map((resource) => (
-                <ResourceErrorBoundary key={resource.name}>
-                  <MemoResource resource={resource} />
-                </ResourceErrorBoundary>
-              ))}
-            </div>
-          )}
-        </div>
-      </ResourceProvider>
-    </ResourceErrorBoundary>
+    <>
+      {mediaResources.length > 0 && <GridView resources={mediaResources} />}
+      <OtherList resources={otherResources} />
+    </>
   );
 };
 

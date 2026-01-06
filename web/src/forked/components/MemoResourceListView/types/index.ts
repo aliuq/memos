@@ -25,3 +25,31 @@ export interface GridViewProps {
   resources: Resource[];
   onSelect: (index: number) => void;
 }
+
+export enum Orientation {
+  /** 竖屏 */
+  PORTRAIT = "portrait",
+  /** 横屏 */
+  LANDSCAPE = "landscape",
+  /** 正方形 */
+  SQUARE = "square",
+}
+
+type BaseResolution = {
+  width: number;
+  height: number;
+  orientation: Orientation;
+};
+export type ImageResolution = BaseResolution & {
+  type: "image";
+  image?: ImageData;
+  displayWidth?: number;
+  displayHeight?: number;
+};
+
+export type VideoResolution = BaseResolution & {
+  type: "video";
+  thumbnail?: string;
+};
+
+export type ResourceResolution = ImageResolution | VideoResolution;

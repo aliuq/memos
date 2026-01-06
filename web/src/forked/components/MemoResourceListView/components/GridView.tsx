@@ -5,7 +5,8 @@ import { Resource } from "@/types/proto/api/v1/resource_service";
 import { cn } from "@/utils";
 import { getResourceType, getResourceUrl, isImage } from "@/utils/resource";
 import { getImageResolution, useMediaQuery } from "../hooks";
-import { generateImageUrl, pauseVideos, retry } from "../utils";
+import "../photoswipe.css";
+import { pauseVideos, retry } from "../utils";
 import { LazyImage } from "./LazyImage";
 import { LazyVideo } from "./LazyVideo";
 import "./player/media-theme-mini";
@@ -33,6 +34,7 @@ type DataSource = SlideData & {
   isFirst: boolean;
   isLast: boolean;
   original: Resource;
+  filename: string;
 };
 
 const MAX_DISPLAY_COUNT = 9;
@@ -115,6 +117,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           isLast: isLastMemo,
           original: resource,
           index,
+          filename: resource.filename,
         };
 
         // 图片
@@ -124,6 +127,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
             src: resourceUrl,
             msrc: thumbUrl,
             type: "image" as const,
+            alt: resource.filename,
             ...commonData,
           };
         }
@@ -133,6 +137,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           return {
             html: `<media-theme-mini id="${resourceId}" src="${resourceUrl}"></media-theme-mini>`,
             type: "video" as const,
+            alt: resource.filename,
             ...commonData,
           };
         }
@@ -153,6 +158,22 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       pswpModule: photoswipe,
       zoom: false,
       close: sm,
+    });
+
+    // 添加文件名称显示
+    lightbox.on("uiRegister", function () {
+      lightbox.pswp?.ui?.registerElement({
+        name: "caption",
+        order: 9,
+        isButton: false,
+        appendTo: "bar",
+        tagName: "p",
+        onInit: (el, pswp) => {
+          pswp.on("change", () => {
+            el.innerText = pswp?.currSlide?.data.filename || "";
+          });
+        },
+      });
     });
 
     lightbox.on("afterInit", () => {
@@ -297,7 +318,6 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   const RenderImage = (props: RenderMediaProps) => {
     const { type, resource, resourceUrl, resourceId, index, len, remainingCount, isLast } = props;
     const url = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
-    const fUrl = generateImageUrl(url);
 
     const layoutClass = {
       landscape: "col-span-2 aspect-[4/3]",
@@ -306,7 +326,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     };
 
     return (
-      <LazyImage src={fUrl} id={resourceId}>
+      <LazyImage src={url} id={resourceId} filename={resource.filename}>
         {({ containerRef, content, containerProps, dimensions }) => {
           return (
             <div

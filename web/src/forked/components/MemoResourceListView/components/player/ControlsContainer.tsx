@@ -19,10 +19,10 @@ const ControlsContainer = () => {
         className="absolute inset-0 size-full flex flex-col gap-5 select-none"
       >
         <div className={`relative flex-1 flex w-full`}>
-          <TogglePausedGestureRegion className="absolute h-full z-1 shrink-0 grow-0 w-[30%] left-1/2 -translate-x-1/2" />
+          <TogglePausedGestureRegion className="absolute h-full shrink-0 grow-0 w-[30%] left-1/2 -translate-x-1/2" />
         </div>
 
-        <div className={`w-full z-1 ${mediaIsFullscreen ? "h-[100px]" : "h-5"}`}>
+        <div className={`w-full ${mediaIsFullscreen ? "h-[100px]" : "h-5"}`}>
           <PlayBigButton center className={`${mediaPaused || userActive ? "opacity-100" : "opacity-0"}`} />
           <DurationDisplay
             abs

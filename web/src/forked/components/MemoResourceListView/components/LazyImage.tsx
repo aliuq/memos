@@ -13,11 +13,11 @@ import RenderMediaState from "./RenderMediaState";
 export enum ImageStatus {
   /** 闲置状态 - 图片尚未进入视口 */
   IDLE = "idle",
-  /** 加载中 - 图片正在加载（包括获取分辨率和重试） */
+  /** 加载中 - 图片正在加载 */
   LOADING = "loading",
   /** 加载成功 - 图片已完全加载并显示 */
   LOADED = "loaded",
-  /** 加载失败 - 图片加载失败（已完成所有重试） */
+  /** 加载失败 - 图片加载失败 */
   ERROR = "error",
 }
 
@@ -34,18 +34,7 @@ export interface ImageError {
   originalError?: Error;
   /** 图片源地址 */
   src?: string;
-  /** 重试次数 */
-  retryCount?: number;
 }
-
-/**
- * 配置常量
- * @description 定义组件的默认行为参数
- */
-const CONFIG = {
-  /** 指数退避的底数 */
-  RETRY_BACKOFF_BASE: 2,
-} as const;
 
 /**
  * LazyImage 组件的 Props 接口
@@ -56,6 +45,8 @@ interface LazyImageProps {
   id?: string;
   /** 图片源地址 */
   src: string;
+  /** 图片文件名 */
+  filename?: string;
   /** 图片的替代文本，用于无障碍访问 */
   alt?: string;
   /** 容器的额外 CSS 类名 */
@@ -121,15 +112,6 @@ interface LazyImageProps {
   enableBlur?: boolean;
   /** 低质量占位图（LQIP）地址 */
   placeholderSrc?: string;
-
-  // ========== 重试策略 ==========
-
-  /** 最大重试次数，默认 3 */
-  maxRetries?: number;
-  /** 初始重试延迟（毫秒），使用指数退避策略，默认 1000 */
-  retryDelay?: number;
-  /** 重试回调，接收当前重试次数 */
-  onRetry?: (attempt: number) => void;
 }
 
 /**
@@ -139,8 +121,6 @@ interface LazyImageProps {
 interface ImageState {
   /** 当前加载状态 */
   status: ImageStatus;
-  /** 重试次数 */
-  retryCount: number;
   /** 图片分辨率信息 */
   dimensions: ImageResolution | null;
   /** 结构化错误信息 */
@@ -155,7 +135,6 @@ type ImageAction =
   | { type: "DIMENSIONS_LOADED"; payload: ImageResolution } // 分辨率加载完成
   | { type: "LOAD_SUCCESS" } // 加载成功
   | { type: "LOAD_ERROR"; payload: ImageError } // 加载失败
-  | { type: "INCREMENT_RETRY" } // 增加重试次数
   | { type: "RESET" }; // 重置状态
 
 /**
@@ -183,13 +162,9 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
         error: action.payload,
       };
 
-    case "INCREMENT_RETRY":
-      return { ...state, retryCount: state.retryCount + 1 };
-
     case "RESET":
       return {
         status: ImageStatus.IDLE,
-        retryCount: 0,
         dimensions: null,
         error: null,
       };
@@ -200,24 +175,12 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
 }
 
 /**
- * 拼接 URL 查询参数的工具函数
- */
-function appendUrlParams(url: string, params: Record<string, string | number>): string {
-  const separator = url.includes("?") ? "&" : "?";
-  const queryString = Object.entries(params)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
-  return `${url}${separator}${queryString}`;
-}
-
-/**
  * 懒加载图片组件
  *
  * @description
  * 一个功能完整的图片懒加载组件，支持：
  * - 🚀 基于 IntersectionObserver 的视口检测
  * - 📐 自动获取图片分辨率以优化布局
- * - 🔄 自动重试机制（指数退避策略）
  * - ♿ 完整的无障碍访问支持
  * - 🎨 可自定义的状态插槽和渲染函数
  * - 🎯 支持 Render Props 模式完全自定义
@@ -244,15 +207,6 @@ function appendUrlParams(url: string, params: Record<string, string | number>): 
  * />
  * ```
  *
- * // 监听错误
- * <LazyImage
- *   src="/photo.jpg"
- *   onError={(error) => {
- *     console.log(error.code); // "LOAD_FAILED"
- *     console.log(error.message); // "图片加载失败（已重试 3 次）"
- *   }}
- * />
- *
  * // 自定义错误UI
  * <LazyImage
  *   src="/image.jpg"
@@ -273,6 +227,7 @@ export const LazyImage = memo(function LazyImage({
   src,
   alt = "",
   className = "",
+  filename = "",
   onLoad,
   onStatusChange,
   onDimensionsLoad,
@@ -284,22 +239,17 @@ export const LazyImage = memo(function LazyImage({
   threshold,
   enableBlur = true,
   placeholderSrc,
-  maxRetries = 3, // 最大重试次数
-  retryDelay = 1000, // 重试延迟，单位毫秒
-  onRetry,
 }: LazyImageProps) {
   // ========== 状态管理 ==========
   // 使用 useReducer 统一管理所有状态，避免多个 useState 导致的状态不同步问题
   const [state, dispatch] = useReducer(imageReducer, {
     status: ImageStatus.IDLE,
-    retryCount: 0,
     dimensions: null,
     error: null,
   });
 
   // ========== Refs ==========
   const imgRef = useRef<HTMLImageElement>(null);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // ========== 视口检测 ==========
   /**
@@ -336,25 +286,7 @@ export const LazyImage = memo(function LazyImage({
    */
   useEffect(() => {
     dispatch({ type: "RESET" });
-
-    // 清理重试 timeout
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-    }
   }, [src]);
-
-  // ========== 组件卸载时清理副作用 ==========
-  /**
-   * 组件卸载时清理所有副作用，防止内存泄漏
-   */
-  useEffect(() => {
-    return () => {
-      // 清理所有 timeout
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // ========== 进入视口时的处理 ==========
   /**
@@ -399,41 +331,17 @@ export const LazyImage = memo(function LazyImage({
 
   /**
    * 图片加载失败的回调
-   * 实现指数退避的重试策略
    */
   const handleError = useCallback(() => {
-    if (state.retryCount < maxRetries) {
-      // 还可以重试，保持 LOADING 状态
-      dispatch({ type: "INCREMENT_RETRY" });
-      const nextRetryCount = state.retryCount + 1;
-      onRetry?.(nextRetryCount);
+    const error: ImageError = {
+      code: "LOAD_FAILED",
+      message: "图片加载失败",
+      src,
+    };
 
-      // 指数退避延迟：delay * 2^retryCount
-      // 第 1 次重试：1000ms，第 2 次：2000ms，第 3 次：4000ms
-      const delay = retryDelay * Math.pow(CONFIG.RETRY_BACKOFF_BASE, state.retryCount);
-
-      retryTimeoutRef.current = setTimeout(() => {
-        // 通过添加时间戳参数强制重新加载
-        if (imgRef.current) {
-          imgRef.current.src = appendUrlParams(src, {
-            retry: nextRetryCount,
-            t: Date.now(),
-          });
-        }
-      }, delay);
-    } else {
-      // 超过重试次数，记录最终错误
-      const error: ImageError = {
-        code: "LOAD_FAILED",
-        message: `图片加载失败（已重试 ${maxRetries} 次）`,
-        src,
-        retryCount: maxRetries,
-      };
-
-      dispatch({ type: "LOAD_ERROR", payload: error });
-      console.error(`Image load failed after ${maxRetries} retries:`, src);
-    }
-  }, [state.retryCount, maxRetries, retryDelay, src, onRetry]);
+    dispatch({ type: "LOAD_ERROR", payload: error });
+    console.error("Image load failed:", src);
+  }, [src]);
 
   /** Idle slot and Loading slot */
   const renderLoadingState = (isIdle = false) => {
@@ -527,14 +435,6 @@ export const LazyImage = memo(function LazyImage({
 
       {/* 加载完成后的插槽（例如遮罩层） */}
       {state.status === ImageStatus.LOADED && renderLoadedState()}
-
-      <div className="debug-info absolute bottom-0 inset-x-0 p-1 text-xs text-white bg-black bg-opacity-50 rounded-md m-1 pointer-events-none select-none">
-        <small>{id?.substring(id.length - 8)}</small>
-        <br />
-        <small>
-          {state.dimensions ? `${state.dimensions.width}x${state.dimensions.height}` : "未知尺寸"} | {state.status}
-        </small>
-      </div>
     </>
   );
 

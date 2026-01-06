@@ -45,11 +45,13 @@ export type ImageResolution = BaseResolution & {
   image?: ImageData;
   displayWidth?: number;
   displayHeight?: number;
+  [key: string]: any;
 };
 
 export type VideoResolution = BaseResolution & {
   type: "video";
   thumbnail?: string;
+  [key: string]: any;
 };
 
 export type ResourceResolution = ImageResolution | VideoResolution;

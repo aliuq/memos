@@ -5,7 +5,7 @@ import { Resource } from "@/types/proto/api/v1/resource_service";
 import { cn } from "@/utils";
 import { getResourceType, getResourceUrl, isImage } from "@/utils/resource";
 import { getImageResolution, useMediaQuery } from "../hooks";
-import { pauseVideos, retry } from "../utils";
+import { generateImageUrl, pauseVideos, retry } from "../utils";
 import { LazyImage } from "./LazyImage";
 import { LazyVideo } from "./LazyVideo";
 import "./player/media-theme-mini";
@@ -114,6 +114,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           isFirst: isFirstMemo,
           isLast: isLastMemo,
           original: resource,
+          index,
         };
 
         // 图片
@@ -198,10 +199,16 @@ const MemoGridView = ({ resources }: GridViewProps) => {
         if (galleryEl) {
           const el = galleryEl.querySelector(`[data-resource="${itemData.resourceId}"] img`);
           if (el instanceof HTMLImageElement && el.naturalWidth > 0) {
-            itemData.width = el.naturalWidth;
-            itemData.height = el.naturalHeight;
-            itemData.w = el.naturalWidth;
-            itemData.h = el.naturalHeight;
+            const w = el.naturalWidth;
+            const h = el.naturalHeight;
+
+            const displayHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            const displayWidth = Math.floor((w / h) * displayHeight);
+
+            itemData.width = displayWidth;
+            itemData.height = displayHeight;
+            itemData.w = displayWidth;
+            itemData.h = displayHeight;
           }
         }
 
@@ -224,7 +231,9 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     });
 
     // 预加载的 slide 会触发 contentLoad 事件
-    // lightbox.on("contentLoad", () => {});
+    // lightbox.on("contentLoad", (e) => {
+    //   console.log("PhotoSwipeLightbox contentLoad", e.content.element);
+    // });
 
     // 监听 slide 切换事件，暂停之前的视频，只有一次
     // lightbox.on("change", () => {});
@@ -288,6 +297,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   const RenderImage = (props: RenderMediaProps) => {
     const { type, resource, resourceUrl, resourceId, index, len, remainingCount, isLast } = props;
     const url = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
+    const fUrl = generateImageUrl(url);
 
     const layoutClass = {
       landscape: "col-span-2 aspect-[4/3]",
@@ -296,7 +306,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     };
 
     return (
-      <LazyImage src={url} id={resourceId}>
+      <LazyImage src={fUrl} id={resourceId}>
         {({ containerRef, content, containerProps, dimensions }) => {
           return (
             <div
@@ -380,6 +390,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     if (dataSource?.type === "video") {
       return <RenderVideo {...renderProps} />;
     }
+
+    return null;
   };
 
   return (
@@ -392,7 +404,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
         )}
       >
         {dataSources.slice(0, displayCount).map((dataSource, index) => {
-          return <GalleryItemWrapper key={dataSource.resourceId} dataSource={dataSource} index={index} />;
+          return <GalleryItemWrapper key={index} dataSource={dataSource} index={index} />;
         })}
       </div>
     </div>

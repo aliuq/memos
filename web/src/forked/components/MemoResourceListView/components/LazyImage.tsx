@@ -3,6 +3,7 @@ import { memo, useRef, useEffect, useCallback, ReactNode, useReducer } from "rea
 import { cn } from "@/utils";
 import { useIntersectionObserver, useMediaResolution } from "../hooks";
 import { ImageResolution } from "../types";
+import { renderSlot } from "../utils";
 import RenderMediaState from "./RenderMediaState";
 
 /**
@@ -101,13 +102,13 @@ interface LazyImageProps {
    */
   slots?: {
     /** 闲置状态插槽 */
-    idle?: ReactNode;
+    idle?: ReactNode | ((state: ImageState) => ReactNode);
     /** 加载中插槽 */
-    loading?: ReactNode;
+    loading?: ReactNode | ((state: ImageState) => ReactNode);
     /** 错误状态插槽 */
-    error?: (error: ImageError | null) => ReactNode;
+    error?: ReactNode | ((state: ImageState) => ReactNode);
     /** 加载完成插槽（可用于添加遮罩层等） */
-    loaded?: ReactNode;
+    loaded?: ReactNode | ((state: ImageState) => ReactNode);
   };
 
   // ========== 高级配置 ==========
@@ -279,8 +280,8 @@ export const LazyImage = memo(function LazyImage({
   children,
   renderImage,
   slots = {},
-  rootMargin = "300px", // IntersectionObserver 的 rootMargin，提前 300px 开始加载
-  threshold = 0.01, // IntersectionObserver 的 threshold，元素可见 1% 时触发
+  rootMargin,
+  threshold,
   enableBlur = true,
   placeholderSrc,
   maxRetries = 3, // 最大重试次数
@@ -434,35 +435,32 @@ export const LazyImage = memo(function LazyImage({
     }
   }, [state.retryCount, maxRetries, retryDelay, src, onRetry]);
 
-  /**
-   * 渲染不同状态的视觉反馈
-   * 支持通过 slots 自定义
-   */
+  /** Idle slot and Loading slot */
   const renderLoadingState = (isIdle = false) => {
     const slot = isIdle ? slots.idle : slots.loading;
-    if (slot) return slot;
-
-    return (
-      <RenderMediaState className={isIdle ? "" : "animate-pulse"}>
-        <Image />
-        <p>{state.status}</p>
-      </RenderMediaState>
-    );
-  };
-
-  const renderErrorState = () => {
-    if (slots.error) {
-      return typeof slots.error === "function" ? slots.error(state.error) : slots.error;
+    if (slot) {
+      return renderSlot(slot, state);
     }
 
-    return (
-      <RenderMediaState>
-        <TriangleAlert />
-        <p>
-          {state.status} {state.error?.message || ""}
-        </p>
-      </RenderMediaState>
-    );
+    return <RenderMediaState className={isIdle ? "" : "animate-pulse"} IconComponent={Image} text={state.status} />;
+  };
+
+  /** Error slot */
+  const renderErrorState = () => {
+    if (slots.error) {
+      return renderSlot(slots.error, state);
+    }
+
+    return <RenderMediaState IconComponent={TriangleAlert} text={state.status} />;
+  };
+
+  /** Loaded slot */
+  const renderLoadedState = () => {
+    if (slots.loaded) {
+      return renderSlot(slots.loaded, state);
+    }
+
+    return null;
   };
 
   /**
@@ -528,7 +526,15 @@ export const LazyImage = memo(function LazyImage({
       {renderImageContent()}
 
       {/* 加载完成后的插槽（例如遮罩层） */}
-      {state.status === ImageStatus.LOADED && slots.loaded}
+      {state.status === ImageStatus.LOADED && renderLoadedState()}
+
+      <div className="debug-info absolute bottom-0 inset-x-0 p-1 text-xs text-white bg-black bg-opacity-50 rounded-md m-1 pointer-events-none select-none">
+        <small>{id?.substring(id.length - 8)}</small>
+        <br />
+        <small>
+          {state.dimensions ? `${state.dimensions.width}x${state.dimensions.height}` : "未知尺寸"} | {state.status}
+        </small>
+      </div>
     </>
   );
 

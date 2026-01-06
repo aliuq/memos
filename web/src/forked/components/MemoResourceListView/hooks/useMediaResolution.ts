@@ -122,7 +122,7 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
 /**
  * Get orientation based on width and height
  */
-function getOrientation(width: number, height: number): Orientation {
+export function getOrientation(width: number, height: number): Orientation {
   if (width > height) return Orientation.LANDSCAPE;
   if (width < height) return Orientation.PORTRAIT;
   return Orientation.SQUARE;

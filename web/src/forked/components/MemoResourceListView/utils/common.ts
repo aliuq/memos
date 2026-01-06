@@ -19,3 +19,15 @@ export async function retry(fn: () => boolean | Promise<boolean>, { retries = 3,
 
   return false;
 }
+
+/**
+ * 插槽函数
+ *
+ * @example
+ * ```ts
+ * typeof slots.header === "function" ? slots.header(state) : slots.header
+ * ```
+ */
+export function renderSlot<T, D = any>(slot: T | ((state: D) => T), state: D): T {
+  return typeof slot === "function" ? (slot as (state: D) => T)(state) : slot;
+}

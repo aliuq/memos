@@ -73,15 +73,25 @@ const extraClassMap: Record<number, { root: string; child: string }> = {
   },
 };
 
-const MemoGridViewNew = ({ resources }: GridViewProps) => {
+/**
+ * 显示剩余数量覆盖层
+ */
+const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) => {
+  if (!remainingCount || remainingCount <= 0) return;
+  return (
+    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold cursor-pointer z-10">
+      +{remainingCount}
+    </div>
+  );
+};
+
+const MemoGridView = ({ resources }: GridViewProps) => {
   const len = resources.length;
   const memoId = resources[0]?.memo!.replace(/\//g, "-");
   const galleryRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<PhotoSwipeLightbox | null>(null);
 
-  const isMobile = useMemo(() => {
-    return window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
-  }, []);
+  const sm = useMediaQuery("sm");
 
   const isVideo = (type: string) => type === "video/*";
 
@@ -140,9 +150,8 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
       bgOpacity: 1,
       maxZoomLevel: 10,
       pswpModule: photoswipe,
-      closeOnVerticalDrag: !isMobile,
       zoom: false,
-      close: !isMobile,
+      close: sm,
     });
 
     lightbox.on("afterInit", () => {
@@ -233,10 +242,7 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
           const currentVideo = currentSlideElement?.shadowRoot?.querySelector("video");
 
           if (currentVideo instanceof HTMLVideoElement) {
-            currentVideo
-              .play()
-              .then(() => true)
-              .catch((e) => console.log("Auto-play prevented:", e));
+            currentVideo.play().then(() => true);
           }
           return false;
         };
@@ -277,18 +283,6 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
   }, []);
 
   /**
-   * 显示剩余数量覆盖层
-   */
-  const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) => {
-    if (!remainingCount || remainingCount <= 0) return;
-    return (
-      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold cursor-pointer z-10">
-        +{remainingCount}
-      </div>
-    );
-  };
-
-  /**
    * 渲染图片
    */
   const RenderImage = (props: RenderMediaProps) => {
@@ -306,7 +300,6 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
         {({ containerRef, content, containerProps, dimensions }) => {
           return (
             <div
-              key={resourceId}
               ref={containerRef}
               {...containerProps}
               data-resource={resourceId}
@@ -333,7 +326,6 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
    */
   const RenderVideo = (props: RenderMediaProps) => {
     const { type, resourceUrl, resourceId, index, len, remainingCount, isLast } = props;
-    const sm = useMediaQuery("sm");
 
     const layoutClass = {
       landscape: "col-span-3 aspect-video",
@@ -346,7 +338,6 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
         {({ containerRef, content, containerProps, dimensions }) => {
           return (
             <div
-              key={resourceId}
               ref={containerRef}
               {...containerProps}
               data-resource={resourceId}
@@ -380,18 +371,20 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
       isLast: dataSource.isLast,
     };
 
-    return (
-      <>
-        {dataSource?.type === "image" && <RenderImage {...renderProps} />}
-        {dataSource?.type === "video" && <RenderVideo {...renderProps} />}
-      </>
-    );
+    if (!dataSource.type) return null;
+
+    if (dataSource.type === "image") {
+      return <RenderImage {...renderProps} />;
+    }
+
+    if (dataSource?.type === "video") {
+      return <RenderVideo {...renderProps} />;
+    }
   };
 
   return (
-    <div ref={galleryRef} id={memoId} key={memoId} className="w-full">
+    <div ref={galleryRef} id={memoId} className="w-full">
       <div
-        key={memoId}
         className={cn(
           "grid gap-[6px] grid-cols-3 overflow-hidden sm:max-w-[400px]",
           len === 1 && dataSources[0].type === "video" && "sm:max-w-[640px]",
@@ -399,7 +392,6 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
         )}
       >
         {dataSources.slice(0, displayCount).map((dataSource, index) => {
-          // eslint-disable-next-line react/prop-types
           return <GalleryItemWrapper key={dataSource.resourceId} dataSource={dataSource} index={index} />;
         })}
       </div>
@@ -407,4 +399,4 @@ const MemoGridViewNew = ({ resources }: GridViewProps) => {
   );
 };
 
-export default memo(MemoGridViewNew);
+export default memo(MemoGridView);

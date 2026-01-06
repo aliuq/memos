@@ -405,7 +405,7 @@ export const LazyImage = memo(function LazyImage({
             enableBlur && (isLoading ? "blur-sm" : isLoaded ? "blur-0" : ""),
           )}
           src={src}
-          alt={alt}
+          alt={alt || filename}
           onLoad={handleLoad}
           onError={handleError}
           loading="lazy"

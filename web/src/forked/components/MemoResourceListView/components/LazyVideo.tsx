@@ -1,8 +1,8 @@
 import { TriangleAlert, Video } from "lucide-react";
 import { MediaProvider } from "media-chrome/dist/react/media-store";
-import { memo, useRef, useEffect, useCallback, ReactNode, useReducer, useMemo } from "react";
+import React, { memo, useEffect, useCallback, ReactNode, useReducer, useMemo } from "react";
 import { cn } from "@/utils";
-import { useIntersectionObserver, useMediaResolution } from "../hooks";
+import { useIntersectionObserver, setupVideoInteractionHandler, calculateVideoResolution, generateVideoThumbnail } from "../hooks";
 import { Orientation, VideoResolution } from "../types";
 import { renderSlot } from "../utils";
 import RenderMediaState from "./RenderMediaState";
@@ -200,7 +200,7 @@ export const LazyVideo = memo(function LazyVideo({
   children,
   renderVideo,
   slots = {},
-  rootMargin,
+  rootMargin = "300px",
   threshold,
   poster,
   videoProps,
@@ -214,8 +214,6 @@ export const LazyVideo = memo(function LazyVideo({
   });
 
   // ========== Refs ==========
-  // Detect iOS device (check only once)
-  const isIosRef = useRef(typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent));
 
   // ========== Viewport Detection ==========
   /**
@@ -236,6 +234,7 @@ export const LazyVideo = memo(function LazyVideo({
    */
   useEffect(() => {
     dispatch({ type: "RESET" });
+    setupVideoInteractionHandler();
   }, [src]);
 
   // ========== Handle Entry into Viewport ==========
@@ -249,26 +248,12 @@ export const LazyVideo = memo(function LazyVideo({
   }, [hasEntered, state.status]);
 
   // ========== Get Video Resolution ==========
-  /**
-   * Get video resolution when in LOADING state and dimensions not yet fetched
-   */
-  const { resolution: videoResolution, error: resolutionError } = useMediaResolution(src, {
-    type: "video",
-    seekTime: poster ? null : 0.5,
-    key: id,
-  });
 
   useEffect(() => {
     if (state.status !== VideoStatus.LOADING || state.dimensions) {
       return;
     }
-
-    if (videoResolution) {
-      dispatch({ type: "DIMENSIONS_LOADED", payload: videoResolution as VideoResolution });
-    } else if (resolutionError) {
-      dispatch({ type: "LOAD_ERROR", payload: resolutionError });
-    }
-  }, [state.status, state.dimensions, videoResolution, resolutionError]);
+  }, [state.status, state.dimensions]);
 
   // ========== Video Load Event Handling ==========
   /**
@@ -283,12 +268,31 @@ export const LazyVideo = memo(function LazyVideo({
    * Callback when video metadata loads
    * iOS devices may not trigger loadedData event, mark as success when metadata loads
    */
-  const handleLoadedMetadata = useCallback(() => {
-    if (isIosRef.current && state.status !== VideoStatus.LOADED) {
-      dispatch({ type: "LOAD_SUCCESS" });
-      onLoad?.(state);
-    }
-  }, [onLoad, state]);
+  const handleLoadedMetadata = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+      if (state.status !== VideoStatus.LOADED) {
+        const dimensions = calculateVideoResolution(e.currentTarget);
+
+        // If no poster, try to generate thumbnail
+        if (!poster) {
+          generateVideoThumbnail(e.currentTarget)
+            .then((thumbnail) => {
+              dispatch({ type: "DIMENSIONS_LOADED", payload: { ...dimensions, thumbnail } as any });
+            })
+            .catch(() => {
+              dispatch({ type: "DIMENSIONS_LOADED", payload: dimensions as any });
+              // Focus on load success, avoid failing due to thumbnail error
+              dispatch({ type: "LOAD_SUCCESS" });
+              onLoad?.(state);
+            });
+        } else {
+          // If poster exists, dispatch immediately without thumbnail
+          dispatch({ type: "DIMENSIONS_LOADED", payload: dimensions as any });
+        }
+      }
+    },
+    [poster, state.status],
+  );
 
   /**
    * Video load error callback
@@ -366,23 +370,23 @@ export const LazyVideo = memo(function LazyVideo({
     // Default preset: use MediaStore Hooks for fine-grained control
     return (
       (isLoading || isLoaded) &&
-      src &&
-      state.dimensions && (
+      src && (
         <MediaProvider>
           <PlayerContainer className="absolute">
             <PlayerVideo
               id={id}
               src={src}
+              poster={placeholderSrc}
               className={cn(
                 "transition-all duration-300 ease-in-out",
                 // Status
                 isLoading && !placeholderSrc && "opacity-0",
-                isLoaded && "opacity-100",
+                isLoaded && state.dimensions && "opacity-100",
               )}
               data-orientation={orientation}
               onLoadedData={handleLoadedData}
               onError={handleError}
-              onLoadedMetadata={handleLoadedMetadata}
+              onLoadedMetadata={(e) => handleLoadedMetadata(e)}
               {...videoProps}
             />
 
@@ -400,8 +404,8 @@ export const LazyVideo = memo(function LazyVideo({
   const content = (
     <>
       {/* Poster image as placeholder */}
-      {placeholderSrc && state.status !== VideoStatus.LOADED && state.dimensions && (
-        <img className="absolute poster z-10 inset-0 size-full object-contain" src={placeholderSrc} alt="" aria-hidden="true" />
+      {placeholderSrc && state.status !== VideoStatus.LOADED && (
+        <img className="absolute poster inset-0 size-full object-contain" src={placeholderSrc} alt="" aria-hidden="true" />
       )}
 
       {/* Status layer render - show current loading status */}
@@ -425,17 +429,16 @@ export const LazyVideo = memo(function LazyVideo({
    */
   const containerProps = useMemo(
     () => ({
-      className: cn("inline-block relative size-full overflow-hidden rounded-md transition-all bg-gray-100 dark:bg-zinc-700", className),
+      className: cn(
+        "inline-block relative size-full overflow-hidden rounded-md transition-all duration-300 bg-gray-100 dark:bg-zinc-700",
+        className,
+      ),
       "data-status": state.status,
       "data-width": state.dimensions ? state.dimensions.width : undefined,
       "data-height": state.dimensions ? state.dimensions.height : undefined,
       role: "video",
       "aria-label": alt || "video",
       "aria-busy": state.status === VideoStatus.LOADING,
-      style: {
-        "--ease": "cubic-bezier(0.25, 0.8, 0.25, 1)",
-        transitionTimingFunction: "var(--ease)",
-      } as React.CSSProperties,
     }),
     [className, state.status, state.dimensions, alt],
   );

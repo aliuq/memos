@@ -14,11 +14,13 @@ const PlayerVideo = ({ className, children, component = "video", ...rest }: Play
   const mediaRef = useMediaRef();
   const mediaIsFullscreen = useMediaSelector((state) => state.mediaIsFullscreen);
   const mergeClassName = cn("size-full absolute inset-0 bg-black", className);
+  const isIphone = /iPad|iPhone|iPod/i.test(navigator.userAgent.toLowerCase());
 
   const basicProps: VideoProps = {
     crossOrigin: "anonymous",
     playsInline: true,
-    preload: "auto",
+    "webkit-playsinline": "true",
+    preload: isIphone ? "metadata" : "auto",
     muted: false,
     autoPlay: false,
     "data-fullscreen": mediaIsFullscreen ? "true" : "false",

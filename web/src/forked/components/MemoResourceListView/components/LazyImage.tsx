@@ -235,7 +235,7 @@ export const LazyImage = memo(function LazyImage({
   children,
   renderImage,
   slots = {},
-  rootMargin,
+  rootMargin = "300px",
   threshold,
   enableBlur = true,
   placeholderSrc,

@@ -1,3 +1,5 @@
+import { Orientation } from "../types";
+
 // Responsive display options
 export interface ResponsiveShowOptions {
   /** Max width: 95% of viewport width */
@@ -119,4 +121,13 @@ export function pauseVideos({ id, shadow = true, dom = true }: PauseVideosOption
       video.pause();
     });
   }
+}
+
+/**
+ * Get orientation based on width and height
+ */
+export function getOrientation(width: number, height: number): Orientation {
+  if (width > height) return Orientation.LANDSCAPE;
+  if (width < height) return Orientation.PORTRAIT;
+  return Orientation.SQUARE;
 }

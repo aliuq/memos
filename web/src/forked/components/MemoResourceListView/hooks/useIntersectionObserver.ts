@@ -64,9 +64,9 @@ export interface UseIntersectionObserverOptions extends IntersectionObserverInit
  */
 export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(options: UseIntersectionObserverOptions = {}) {
   const {
-    threshold = 0,
+    threshold = 0.01,
     root = null,
-    rootMargin = "0px",
+    rootMargin = "100px",
     once = false,
     enabled = true,
     animationDelay = 0,

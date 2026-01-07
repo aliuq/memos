@@ -4,8 +4,8 @@ import { Resource } from "@/types/proto/api/v1/resource_service";
 import { getResourceType } from "@/utils/resource";
 import GridView from "./components/GridView";
 
-// 提取为独立组件避免每次渲染重新创建
-const OtherList = memo(({ resources }: { resources: Resource[] }) => {
+// Extract as independent component to avoid recreation on each render
+const OtherList = memo(function OtherList({ resources }: { resources: Resource[] }) {
   if (resources.length === 0) return null;
 
   return (
@@ -18,7 +18,7 @@ const OtherList = memo(({ resources }: { resources: Resource[] }) => {
 });
 
 const MemoResourceListView = ({ resources = [] }: { resources: Resource[] }) => {
-  // 使用 useMemo 缓存资源分类计算，避免每次渲染都重新计算
+  // Cache resource classification with useMemo to avoid recalculation on each render
   const { mediaResources, otherResources } = useMemo(() => {
     const media: Resource[] = [];
     const other: Resource[] = [];

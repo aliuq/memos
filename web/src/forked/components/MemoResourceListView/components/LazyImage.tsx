@@ -7,69 +7,69 @@ import { renderSlot } from "../utils";
 import RenderMediaState from "./RenderMediaState";
 
 /**
- * 图片加载状态枚举
- * @description 定义图片在整个生命周期中的所有可能状态
+ * Image loading status enum
+ * @description Defines all possible states in image lifecycle
  */
 export enum ImageStatus {
-  /** 闲置状态 - 图片尚未进入视口 */
+  /** Idle state - image not yet entered viewport */
   IDLE = "idle",
-  /** 加载中 - 图片正在加载 */
+  /** Loading - image is loading */
   LOADING = "loading",
-  /** 加载成功 - 图片已完全加载并显示 */
+  /** Loaded - image fully loaded and displayed */
   LOADED = "loaded",
-  /** 加载失败 - 图片加载失败 */
+  /** Error - image load failed */
   ERROR = "error",
 }
 
 /**
- * 结构化错误信息
- * @description 提供明确的错误类型和用户友好的错误信息
+ * Structured error information
+ * @description Provides explicit error types and user-friendly error messages
  */
 export interface ImageError {
-  /** 错误代码，用于程序化处理 */
+  /** Error code for programmatic handling */
   code: "NETWORK_ERROR" | "TIMEOUT" | "RESOLUTION_FAILED" | "LOAD_FAILED" | "UNKNOWN";
-  /** 用户友好的错误消息 */
+  /** User-friendly error message */
   message: string;
-  /** 原始错误对象 */
+  /** Original error object */
   originalError?: Error;
-  /** 图片源地址 */
+  /** Image source URL */
   src?: string;
 }
 
 /**
- * LazyImage 组件的 Props 接口
- * @description 支持懒加载、自动重试、分辨率预获取的图片组件
+ * LazyImage component Props interface
+ * @description Image component with lazy loading, auto retry, and resolution prefetch
  */
 interface LazyImageProps {
-  /** 图片元素的唯一标识符 */
+  /** Unique identifier for image element */
   id?: string;
-  /** 图片源地址 */
+  /** Image source URL */
   src: string;
-  /** 图片文件名 */
+  /** Image filename */
   filename?: string;
-  /** 图片的替代文本，用于无障碍访问 */
+  /** Alternative text for accessibility */
   alt?: string;
-  /** 容器的额外 CSS 类名 */
+  /** Additional CSS class names for container */
   className?: string;
-  /** 图片加载成功回调 */
+  /** Image load success callback */
   onLoad?: () => void;
-  /** 状态变化回调 */
+  /** Status change callback */
   onStatusChange?: (status: ImageStatus) => void;
-  /** 图片尺寸加载完成回调 */
+  /** Image dimensions loaded callback */
   onDimensionsLoad?: (dimensions: ImageResolution) => void;
-  /** 错误回调 */
+  /** Error callback */
   onError?: (error: ImageError) => void;
 
   children?: (params: {
-    /** 容器 ref，用于 IntersectionObserver */
+    /** Container ref for IntersectionObserver */
     containerRef: React.RefObject<HTMLDivElement>;
-    /** 图片分辨率信息 */
+    /** Image resolution info */
     dimensions: ImageResolution | null;
-    /** 当前加载状态 */
+    /** Current loading status */
     status: ImageStatus;
-    /** 默认的内容渲染 */
+    /** Default content render */
     content: ReactNode;
-    /** 推荐的容器属性 */
+    /** Recommended container props */
     containerProps: {
       className?: string;
       [key: string]: any;
@@ -77,10 +77,10 @@ interface LazyImageProps {
   }) => ReactNode;
 
   /**
-   * 自定义图片渲染函数
-   * @param dimensions - 图片分辨率信息
-   * @param status - 当前加载状态
-   * @param imgRef - 图片元素 ref
+   * Custom image render function
+   * @param dimensions - Image resolution info
+   * @param status - Current loading status
+   * @param imgRef - Image element ref
    */
   renderImage?: (params: {
     dimensions: ImageResolution | null;
@@ -89,57 +89,57 @@ interface LazyImageProps {
   }) => ReactNode;
 
   /**
-   * 状态插槽 - 自定义各个状态的渲染内容
+   * Status slots - customize render content for each status
    */
   slots?: {
-    /** 闲置状态插槽 */
+    /** Idle status slot */
     idle?: ReactNode | ((state: ImageState) => ReactNode);
-    /** 加载中插槽 */
+    /** Loading slot */
     loading?: ReactNode | ((state: ImageState) => ReactNode);
-    /** 错误状态插槽 */
+    /** Error status slot */
     error?: ReactNode | ((state: ImageState) => ReactNode);
-    /** 加载完成插槽（可用于添加遮罩层等） */
+    /** Loaded slot (can be used for overlay, etc.) */
     loaded?: ReactNode | ((state: ImageState) => ReactNode);
   };
 
-  // ========== 高级配置 ==========
+  // ========== Advanced Configuration ==========
 
-  /** IntersectionObserver 的 rootMargin，默认 "100px" */
+  /** IntersectionObserver rootMargin, default "100px" */
   rootMargin?: string;
-  /** IntersectionObserver 的 threshold，默认 0.01 */
+  /** IntersectionObserver threshold, default 0.01 */
   threshold?: number;
-  /** 是否启用模糊到清晰的过渡效果，默认 true */
+  /** Enable blur-to-sharp transition effect, default true */
   enableBlur?: boolean;
-  /** 低质量占位图（LQIP）地址 */
+  /** Low Quality Image Placeholder (LQIP) URL */
   placeholderSrc?: string;
 }
 
 /**
- * 组件状态接口
- * @description 使用 useReducer 统一管理所有状态，避免状态不同步
+ * Component state interface
+ * @description Use useReducer to unify all states, avoid state sync issues
  */
 interface ImageState {
-  /** 当前加载状态 */
+  /** Current loading status */
   status: ImageStatus;
-  /** 图片分辨率信息 */
+  /** Image resolution info */
   dimensions: ImageResolution | null;
-  /** 结构化错误信息 */
+  /** Structured error info */
   error: ImageError | null;
 }
 
 /**
- * Action 类型定义
+ * Action type definitions
  */
 type ImageAction =
-  | { type: "START_LOADING" } // 开始加载（进入视口）
-  | { type: "DIMENSIONS_LOADED"; payload: ImageResolution } // 分辨率加载完成
-  | { type: "LOAD_SUCCESS" } // 加载成功
-  | { type: "LOAD_ERROR"; payload: ImageError } // 加载失败
-  | { type: "RESET" }; // 重置状态
+  | { type: "START_LOADING" } // Start loading (entered viewport)
+  | { type: "DIMENSIONS_LOADED"; payload: ImageResolution } // Resolution loaded
+  | { type: "LOAD_SUCCESS" } // Load success
+  | { type: "LOAD_ERROR"; payload: ImageError } // Load failed
+  | { type: "RESET" }; // Reset state
 
 /**
- * 状态机 Reducer
- * @description 集中管理状态转换逻辑，确保状态流转清晰可控
+ * State machine Reducer
+ * @description Centralized state transition logic for clear and controlled state flow
  */
 function imageReducer(state: ImageState, action: ImageAction): ImageState {
   switch (action.type) {
@@ -175,22 +175,22 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
 }
 
 /**
- * 懒加载图片组件
+ * Lazy loading image component
  *
  * @description
- * 一个功能完整的图片懒加载组件，支持：
- * - 🚀 基于 IntersectionObserver 的视口检测
- * - 📐 自动获取图片分辨率以优化布局
- * - ♿ 完整的无障碍访问支持
- * - 🎨 可自定义的状态插槽和渲染函数
- * - 🎯 支持 Render Props 模式完全自定义
+ * A fully-featured lazy loading image component with:
+ * - 🚀 Viewport detection based on IntersectionObserver
+ * - 📐 Automatic image resolution fetch for layout optimization
+ * - ♿ Full accessibility support
+ * - 🎨 Customizable status slots and render functions
+ * - 🎯 Render Props pattern for full customization
  *
  * @example
  * ```tsx
- * // 基础用法
- * <LazyImage src="/photo.jpg" alt="示例图片" />
+ * // Basic usage
+ * <LazyImage src="/photo.jpg" alt="example image" />
  *
- * // 自定义容器
+ * // Custom container
  * <LazyImage src="/photo.jpg">
  *   {({ containerRef, content, containerProps }) => (
  *     <div ref={containerRef} {...containerProps} className="custom-wrapper">
@@ -199,7 +199,7 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
  *   )}
  * </LazyImage>
  *
- * // 监听状态变化
+ * // Listen to state changes
  * <LazyImage
  *   src="/photo.jpg"
  *   onStatusChange={(status) => console.log(status)}
@@ -207,7 +207,7 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
  * />
  * ```
  *
- * // 自定义错误UI
+ * // Custom error UI
  * <LazyImage
  *   src="/image.jpg"
  *   slots={{
@@ -216,11 +216,11 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
  * />
  *
  * @performance
- * - 使用 useReducer 统一状态管理，减少 re-render
- * - 使用 AbortController 支持请求取消
- * - 使用 useCallbackRef 稳定回调引用
- * - 组件卸载时自动清理所有副作用
- * - 使用 memo 优化重复渲染
+ * - Use useReducer for unified state management, reduce re-renders
+ * - Use AbortController for request cancellation support
+ * - Use useCallbackRef to stabilize callback references
+ * - Automatically cleanup all side effects on component unmount
+ * - Use memo to optimize repeated renders
  */
 export const LazyImage = memo(function LazyImage({
   id: _id, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -240,8 +240,8 @@ export const LazyImage = memo(function LazyImage({
   enableBlur = true,
   placeholderSrc,
 }: LazyImageProps) {
-  // ========== 状态管理 ==========
-  // 使用 useReducer 统一管理所有状态，避免多个 useState 导致的状态不同步问题
+  // ========== State Management ==========
+  // Use useReducer to unify all states, avoid state sync issues from multiple useState
   const [state, dispatch] = useReducer(imageReducer, {
     status: ImageStatus.IDLE,
     dimensions: null,
@@ -250,13 +250,13 @@ export const LazyImage = memo(function LazyImage({
 
   // ========== Refs ==========
   const imgRef = useRef<HTMLImageElement>(null);
-  // 使用 ref 存储回调函数，避免因回调变化导致 effect 重新执行
+  // Use ref to store callbacks, avoid effect re-execution due to callback changes
   const onLoadRef = useRef(onLoad);
   const onStatusChangeRef = useRef(onStatusChange);
   const onDimensionsLoadRef = useRef(onDimensionsLoad);
   const onErrorRef = useRef(onError);
 
-  // 更新 ref 引用
+  // Update ref references
   useEffect(() => {
     onLoadRef.current = onLoad;
     onStatusChangeRef.current = onStatusChange;
@@ -264,11 +264,11 @@ export const LazyImage = memo(function LazyImage({
     onErrorRef.current = onError;
   });
 
-  // ========== 视口检测 ==========
+  // ========== Viewport Detection ==========
   /**
-   * 使用 IntersectionObserver 检测图片是否进入视口
-   * - once: true 表示只触发一次
-   * - enabled: 只在 IDLE 状态时启用，避免重复触发
+   * Use IntersectionObserver to detect if image entered viewport
+   * - once: true triggers only once
+   * - enabled: only enabled in IDLE state, avoid duplicate triggers
    */
   const { ref: containerRef, hasEntered } = useIntersectionObserver<HTMLDivElement>({
     rootMargin,
@@ -277,9 +277,9 @@ export const LazyImage = memo(function LazyImage({
     enabled: state.status === ImageStatus.IDLE,
   });
 
-  // ========== 状态变化回调 ==========
+  // ========== State Change Callbacks ==========
   /**
-   * 统一处理所有状态变化的副作用
+   * Unified handling of all state change side effects
    */
   useEffect(() => {
     onStatusChangeRef.current?.(state.status);
@@ -293,17 +293,17 @@ export const LazyImage = memo(function LazyImage({
     }
   }, [state.status, state.dimensions, state.error]);
 
-  // ========== src 变化时重置状态 ==========
+  // ========== Reset State on src Change ==========
   /**
-   * 当 src 改变时，重置所有状态
+   * Reset all states when src changes
    */
   useEffect(() => {
     dispatch({ type: "RESET" });
   }, [src]);
 
-  // ========== 进入视口时的处理 ==========
+  // ========== Handle Entry into Viewport ==========
   /**
-   * 当图片进入视口时，开始加载（包括获取分辨率和图片加载）
+   * Start loading when image enters viewport (including resolution fetch and image load)
    */
   useEffect(() => {
     if (hasEntered && state.status === ImageStatus.IDLE) {
@@ -311,19 +311,19 @@ export const LazyImage = memo(function LazyImage({
     }
   }, [hasEntered, state.status]);
 
-  // ========== 图片加载事件处理 ==========
+  // ========== Image Load Event Handling ==========
   /**
-   * 图片加载成功的回调
+   * Callback when image loads successfully
    */
   const handleLoad = useCallback(() => {
-    // 从图片元素获取实际尺寸
+    // Get actual dimensions from image element
     if (imgRef.current) {
       const resolution = calculateImageResolution(imgRef.current);
 
       if (resolution.width > 0 && resolution.height > 0) {
         const dimensions = { type: "image", ...resolution } as ImageResolution;
 
-        // 更新尺寸信息
+        // Update dimension info
         dispatch({ type: "DIMENSIONS_LOADED", payload: dimensions });
       }
     }
@@ -333,17 +333,16 @@ export const LazyImage = memo(function LazyImage({
   }, []);
 
   /**
-   * 图片加载失败的回调
+   * Image load error callback
    */
   const handleError = useCallback(() => {
     const error: ImageError = {
       code: "LOAD_FAILED",
-      message: "图片加载失败",
+      message: "Failed to load image",
       src,
     };
 
     dispatch({ type: "LOAD_ERROR", payload: error });
-    console.error("Image load failed:", src);
   }, [src]);
 
   /** Idle slot and Loading slot */
@@ -375,21 +374,21 @@ export const LazyImage = memo(function LazyImage({
   };
 
   /**
-   * 渲染图片元素
-   * 支持通过 renderImage prop 完全自定义
+   * Render image element
+   * Supports full customization via renderImage prop
    */
   const renderImageContent = () => {
-    // 允许外部完全控制图片渲染
+    // Allow external full control of image rendering
     if (renderImage) {
       return renderImage({ dimensions: state.dimensions, status: state.status, imgRef });
     }
 
-    // 错误状态不渲染图片元素
+    // Don't render image element in error state
     if (state.status === ImageStatus.ERROR) {
       return null;
     }
 
-    // 只在加载中和已加载状态下渲染图片
+    // Only render image in loading and loaded states
     const isLoading = state.status === ImageStatus.LOADING;
     const isLoaded = state.status === ImageStatus.LOADED;
 
@@ -400,11 +399,11 @@ export const LazyImage = memo(function LazyImage({
           ref={imgRef}
           className={cn(
             "size-full object-cover bg-black transition-all duration-300 ease-in-out",
-            // 加载中时淡出并轻微缩小
+            // Fade out and slightly scale down while loading
             isLoading && "opacity-0 scale-[0.95]",
-            // 加载完成时淡入并恢复大小
+            // Fade in and restore scale when loaded
             isLoaded && "opacity-100 scale-100",
-            // 模糊到清晰的过渡效果
+            // Blur to sharp transition effect
             enableBlur && (isLoading ? "blur-sm" : isLoaded ? "blur-0" : ""),
           )}
           src={src}
@@ -417,34 +416,34 @@ export const LazyImage = memo(function LazyImage({
     );
   };
 
-  // ========== 组合渲染内容 ==========
+  // ========== Compose Render Content ==========
   /**
-   * 组合所有渲染层：占位图 -> 状态层 -> 图片
+   * Combine all render layers: placeholder -> state layer -> image
    */
   const content = (
     <>
-      {/* 占位图（LQIP）- 低质量图片占位，提供更好的用户体验 */}
+      {/* Placeholder (LQIP) - Low Quality Image Placeholder for better UX */}
       {placeholderSrc && state.status !== ImageStatus.LOADED && (
         <img className="absolute inset-0 size-full object-cover blur-sm opacity-60" src={placeholderSrc} alt="" aria-hidden="true" />
       )}
 
-      {/* 状态层渲染 - 显示当前加载状态 */}
+      {/* Status layer render - show current loading status */}
       {state.status === ImageStatus.IDLE && renderLoadingState(true)}
       {state.status === ImageStatus.LOADING && renderLoadingState(false)}
       {state.status === ImageStatus.ERROR && renderErrorState()}
 
-      {/* 图片元素 */}
+      {/* Image element */}
       {renderImageContent()}
 
-      {/* 加载完成后的插槽（例如遮罩层） */}
+      {/* Slot after loaded (e.g. overlay) */}
       {state.status === ImageStatus.LOADED && renderLoadedState()}
     </>
   );
 
-  // ========== 容器属性配置 ==========
+  // ========== Container Properties Configuration ==========
   /**
-   * 构建容器的属性对象
-   * 包含无障碍访问、数据属性、交互事件等
+   * Build container properties object
+   * Includes accessibility, data attributes, interaction events, etc.
    */
   const containerProps = {
     className: cn(
@@ -455,7 +454,7 @@ export const LazyImage = memo(function LazyImage({
     "data-width": state.dimensions ? state.dimensions.width : undefined,
     "data-height": state.dimensions ? state.dimensions.height : undefined,
     role: "img",
-    "aria-label": alt || "图片",
+    "aria-label": alt || "image",
     "aria-busy": state.status === ImageStatus.LOADING,
     style: {
       "--ease": "cubic-bezier(0.25, 0.8, 0.25, 1)",
@@ -463,10 +462,10 @@ export const LazyImage = memo(function LazyImage({
     } as React.CSSProperties,
   };
 
-  // ========== 最终渲染 ==========
+  // ========== Final Render ==========
   /**
-   * 如果提供了 children render prop，让外部完全控制容器结构
-   * 否则使用默认的容器包装
+   * If children render prop provided, let external code fully control container structure
+   * Otherwise use default container wrapper
    */
   if (children) {
     return children({
@@ -478,7 +477,7 @@ export const LazyImage = memo(function LazyImage({
     });
   }
 
-  // 默认渲染：使用内置容器
+  // Default render: use built-in container
   return (
     <div ref={containerRef} {...containerProps}>
       {content}

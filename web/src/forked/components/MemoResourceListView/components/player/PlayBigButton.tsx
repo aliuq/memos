@@ -9,7 +9,7 @@ const PlayBigButton = ({ className, center = false, ...rest }: Omit<IconButtonPr
   const IconComponent = mediaPaused ? Play : Pause;
   const label = mediaPaused ? "Play" : "Pause";
 
-  // 点击播放，需要暂停其他 video 元素的播放
+  // Pause other videos when playing
   function togglePlay(e: React.MouseEvent) {
     e.stopPropagation();
 

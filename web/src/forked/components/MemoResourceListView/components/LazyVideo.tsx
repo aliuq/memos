@@ -11,50 +11,50 @@ import PlayerContainer from "./player/PlayerContainer";
 import PlayerVideo, { PlayerVideoProps } from "./player/PlayerVideo";
 
 /**
- * 视频加载状态枚举
- * @description 定义视频在整个生命周期中的所有可能状态
+ * Video loading status enum
+ * @description Defines all possible states in video lifecycle
  */
 export enum VideoStatus {
-  /** 闲置状态 - 视频尚未进入视口 */
+  /** Idle state - video not yet entered viewport */
   IDLE = "idle",
-  /** 加载中 - 视频正在加载（包括获取分辨率） */
+  /** Loading - video is loading (including resolution fetch) */
   LOADING = "loading",
-  /** 加载成功 - 视频已完全加载并可播放 */
+  /** Loaded - video fully loaded and playable */
   LOADED = "loaded",
-  /** 加载失败 - 视频加载失败 */
+  /** Error - video load failed */
   ERROR = "error",
 }
 
 /**
- * LazyVideo 组件的 Props 接口
- * @description 支持懒加载、分辨率预获取的视频组件
+ * LazyVideo component Props interface
+ * @description Video component with lazy loading and resolution prefetch
  */
 interface LazyVideoProps {
-  /** 唯一 ID */
+  /** Unique ID */
   id: string;
-  /** 视频源地址 */
+  /** Video source URL */
   src: string;
-  /** 视频的描述文本，用于无障碍访问 */
+  /** Video description text for accessibility */
   alt?: string;
-  /** 容器的额外 CSS 类名 */
+  /** Additional CSS class names for container */
   className?: string;
-  /** 视频加载成功回调 */
+  /** Video load success callback */
   onLoad?: (state: VideoState) => void;
-  /** 状态变化回调 */
+  /** Status change callback */
   onStatusChange?: (status: VideoStatus) => void;
-  /** 视频尺寸加载完成回调 */
+  /** Video dimensions loaded callback */
   onDimensionsLoad?: (dimensions: VideoResolution) => void;
-  /** Render Props 模式的子组件 */
+  /** Render Props pattern children */
   children?: (params: {
-    /** 容器 ref，用于 IntersectionObserver */
+    /** Container ref for IntersectionObserver */
     containerRef: React.RefObject<any>;
-    /** 视频分辨率信息 */
+    /** Video resolution info */
     dimensions: VideoResolution | null;
-    /** 当前加载状态 */
+    /** Current loading status */
     status: VideoStatus;
-    /** 默认的内容渲染 */
+    /** Default content render */
     content: ReactNode;
-    /** 容器属性 */
+    /** Container props */
     containerProps: {
       className?: string;
       [key: string]: any;
@@ -62,60 +62,60 @@ interface LazyVideoProps {
   }) => ReactNode;
 
   /**
-   * 自定义视频渲染函数
-   * @param dimensions - 视频分辨率信息
-   * @param status - 当前加载状态
+   * Custom video render function
+   * @param dimensions - Video resolution info
+   * @param status - Current loading status
    */
   renderVideo?: (params: { dimensions: VideoResolution | null; status: VideoStatus }) => ReactNode;
 
-  /** 状态插槽 - 自定义各个状态的渲染内容 */
+  /** Status slots - customize render content for each status */
   slots?: {
-    /** 闲置状态插槽 */
+    /** Idle status slot */
     idle?: ReactNode | ((state: VideoState) => ReactNode);
-    /** 加载中插槽 */
+    /** Loading slot */
     loading?: ReactNode | ((state: VideoState) => ReactNode);
-    /** 错误状态插槽 */
+    /** Error status slot */
     error?: ReactNode | ((state: VideoState) => ReactNode);
-    /** 加载完成插槽（可用于添加遮罩层等） */
+    /** Loaded slot (can be used for overlay, etc.) */
     loaded?: ReactNode | ((state: VideoState) => ReactNode);
   };
 
-  /** IntersectionObserver 的 rootMargin，默认 "100px" */
+  /** IntersectionObserver rootMargin, default "100px" */
   rootMargin?: string;
-  /** IntersectionObserver 的 threshold，默认 0.01 */
+  /** IntersectionObserver threshold, default 0.01 */
   threshold?: number;
-  /** 视频海报图（封面）地址 */
+  /** Video poster image (cover) URL */
   poster?: string;
-  /** 传递给视频元素的额外属性 */
+  /** Additional props passed to video element */
   videoProps?: PlayerVideoProps;
 }
 
 /**
- * 组件状态接口
- * @description 使用 useReducer 统一管理所有状态，避免状态不同步
+ * Component state interface
+ * @description Use useReducer to unify all states, avoid state sync issues
  */
 interface VideoState {
-  /** 当前加载状态 */
+  /** Current loading status */
   status: VideoStatus;
-  /** 视频分辨率信息 */
+  /** Video resolution info */
   dimensions: VideoResolution | null;
-  /** 错误信息（如果有） */
+  /** Error info (if any) */
   error: Error | null;
 }
 
 /**
- * Action 类型定义
+ * Action type definitions
  */
 type VideoAction =
-  | { type: "START_LOADING" } // 开始加载（进入视口）
-  | { type: "DIMENSIONS_LOADED"; payload: VideoResolution } // 分辨率加载完成
-  | { type: "LOAD_SUCCESS" } // 加载成功
-  | { type: "LOAD_ERROR"; payload: Error } // 加载失败
-  | { type: "RESET" }; // 重置状态
+  | { type: "START_LOADING" } // Start loading (entered viewport)
+  | { type: "DIMENSIONS_LOADED"; payload: VideoResolution } // Resolution loaded
+  | { type: "LOAD_SUCCESS" } // Load success
+  | { type: "LOAD_ERROR"; payload: Error } // Load failed
+  | { type: "RESET" }; // Reset state
 
 /**
- * 状态机 Reducer
- * @description 集中管理状态转换逻辑，确保状态流转清晰可控
+ * State machine Reducer
+ * @description Centralized state transition logic for clear and controlled state flow
  */
 function videoReducer(state: VideoState, action: VideoAction): VideoState {
   switch (action.type) {
@@ -151,23 +151,23 @@ function videoReducer(state: VideoState, action: VideoAction): VideoState {
 }
 
 /**
- * 懒加载视频组件
+ * Lazy loading video component
  *
  * @description
- * 一个功能完整的视频懒加载组件，支持：
- * - 🚀 基于 IntersectionObserver 的视口检测
- * - 📐 自动获取视频分辨率以优化布局
- * - ♿ 完整的无障碍访问支持
- * - 🎨 可自定义的状态插槽和渲染函数
- * - 🎯 支持 Render Props 模式完全自定义
- * - 🎬 使用 media-chrome 提供现代化的播放控制界面
+ * A fully-featured lazy loading video component with:
+ * - 🚀 Viewport detection based on IntersectionObserver
+ * - 📐 Automatic video resolution fetch for layout optimization
+ * - ♿ Full accessibility support
+ * - 🎨 Customizable status slots and render functions
+ * - 🎯 Render Props pattern for full customization
+ * - 🎬 Modern playback controls using media-chrome
  *
  * @example
  * ```tsx
- * // 基础用法
+ * // Basic usage
  * <LazyVideo src="/video.mp4" poster="/poster.jpg" />
  *
- * // 自定义容器
+ * // Custom container
  * <LazyVideo src="/video.mp4">
  *   {({ containerRef, content, containerProps }) => (
  *     <div ref={containerRef} {...containerProps} className="custom-wrapper">
@@ -176,7 +176,7 @@ function videoReducer(state: VideoState, action: VideoAction): VideoState {
  *   )}
  * </LazyVideo>
  *
- * // 监听状态变化
+ * // Listen to state changes
  * <LazyVideo
  *   src="/video.mp4"
  *   onStatusChange={(status) => console.log(status)}
@@ -185,9 +185,9 @@ function videoReducer(state: VideoState, action: VideoAction): VideoState {
  * ```
  *
  * @performance
- * - 使用 useReducer 统一状态管理，减少 re-render
- * - 组件卸载时自动清理所有副作用
- * - 使用 memo 优化重复渲染
+ * - Use useReducer for unified state management, reduce re-renders
+ * - Automatically cleanup all side effects on component unmount
+ * - Use memo to optimize repeated renders
  */
 export const LazyVideo = memo(function LazyVideo({
   id,
@@ -200,13 +200,13 @@ export const LazyVideo = memo(function LazyVideo({
   children,
   renderVideo,
   slots = {},
-  rootMargin = "300px", // IntersectionObserver 的 rootMargin，提前 300px 开始加载
-  threshold = 0.01, // IntersectionObserver 的 threshold，元素可见 1% 时触发
+  rootMargin,
+  threshold,
   poster,
   videoProps,
 }: LazyVideoProps) {
-  // ========== 状态管理 ==========
-  // 使用 useReducer 统一管理所有状态，避免多个 useState 导致的状态不同步问题
+  // ========== State Management ==========
+  // Use useReducer to unify all states, avoid state sync issues from multiple useState
   const [state, dispatch] = useReducer(videoReducer, {
     status: VideoStatus.IDLE,
     dimensions: null,
@@ -214,14 +214,14 @@ export const LazyVideo = memo(function LazyVideo({
   });
 
   // ========== Refs ==========
-  // 检测 iOS 设备（只需检测一次）
+  // Detect iOS device (check only once)
   const isIosRef = useRef(typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent));
 
-  // ========== 视口检测 ==========
+  // ========== Viewport Detection ==========
   /**
-   * 使用 IntersectionObserver 检测视频是否进入视口
-   * - once: true 表示只触发一次
-   * - enabled: 只在 IDLE 状态时启用，避免重复触发
+   * Use IntersectionObserver to detect if video entered viewport
+   * - once: true triggers only once
+   * - enabled: only enabled in IDLE state, avoid duplicate triggers
    */
   const { ref: containerRef, hasEntered } = useIntersectionObserver<HTMLDivElement>({
     rootMargin,
@@ -230,17 +230,17 @@ export const LazyVideo = memo(function LazyVideo({
     enabled: state.status === VideoStatus.IDLE,
   });
 
-  // ========== src 变化时重置状态 ==========
+  // ========== Reset State on src Change ==========
   /**
-   * 当 src 改变时，重置所有状态
+   * Reset all states when src changes
    */
   useEffect(() => {
     dispatch({ type: "RESET" });
   }, [src]);
 
-  // ========== 进入视口时的处理 ==========
+  // ========== Handle Entry into Viewport ==========
   /**
-   * 当视频进入视口时，开始加载（包括获取分辨率和视频加载）
+   * Start loading when video enters viewport (including resolution fetch and video load)
    */
   useEffect(() => {
     if (hasEntered && state.status === VideoStatus.IDLE) {
@@ -248,9 +248,9 @@ export const LazyVideo = memo(function LazyVideo({
     }
   }, [hasEntered, state.status]);
 
-  // ========== 获取视频分辨率 ==========
+  // ========== Get Video Resolution ==========
   /**
-   * 在 LOADING 状态且未获取分辨率时获取视频分辨率
+   * Get video resolution when in LOADING state and dimensions not yet fetched
    */
   const { resolution: videoResolution, error: resolutionError } = useMediaResolution(src, {
     type: "video",
@@ -270,9 +270,9 @@ export const LazyVideo = memo(function LazyVideo({
     }
   }, [state.status, state.dimensions, videoResolution, resolutionError]);
 
-  // ========== 视频加载事件处理 ==========
+  // ========== Video Load Event Handling ==========
   /**
-   * 视频加载成功的回调
+   * Callback when video loads successfully
    */
   const handleLoadedData = useCallback(() => {
     dispatch({ type: "LOAD_SUCCESS" });
@@ -280,8 +280,8 @@ export const LazyVideo = memo(function LazyVideo({
   }, [onLoad, state]);
 
   /**
-   * 视频元数据加载完成的回调
-   * iOS 设备可能不触发 loadedData 事件，需要在 metadata 加载完成时标记为成功
+   * Callback when video metadata loads
+   * iOS devices may not trigger loadedData event, mark as success when metadata loads
    */
   const handleLoadedMetadata = useCallback(() => {
     if (isIosRef.current && state.status !== VideoStatus.LOADED) {
@@ -291,23 +291,23 @@ export const LazyVideo = memo(function LazyVideo({
   }, [onLoad, state]);
 
   /**
-   * 视频加载失败的回调
+   * Video load error callback
    */
   const handleError = useCallback(() => {
-    dispatch({ type: "LOAD_ERROR", payload: new Error("Video load failed") });
-    console.error("Video load failed:", src);
+    const error = new Error(`Video load failed: ${src}`);
+    dispatch({ type: "LOAD_ERROR", payload: error });
   }, [src]);
 
-  // ========== 状态变化回调 ==========
+  // ========== State Change Callbacks ==========
   /**
-   * 当状态改变时，通知外部组件
+   * Notify external component when state changes
    */
   useEffect(() => {
     onStatusChange?.(state.status);
   }, [state.status, onStatusChange]);
 
   /**
-   * 当分辨率加载完成时，通知外部组件
+   * Notify external component when resolution loads
    */
   useEffect(() => {
     if (state.dimensions) {
@@ -346,24 +346,24 @@ export const LazyVideo = memo(function LazyVideo({
   const placeholderSrc = poster || (state.dimensions ? state.dimensions.thumbnail : undefined);
 
   /**
-   * 渲染视频元素
-   * 支持通过 renderVideo prop 完全自定义
+   * Render video element
+   * Supports full customization via renderVideo prop
    */
   const renderVideoContent = () => {
-    // 允许外部完全控制视频渲染
+    // Allow external full control of video rendering
     if (renderVideo) {
       return renderVideo({ dimensions: state.dimensions, status: state.status });
     }
-    // 错误状态不渲染视频元素
+    // Don't render video element in error state
     if (state.status === VideoStatus.ERROR) return null;
 
-    // 只在特定状态下渲染视频
+    // Only render video in specific states
     const isLoading = state.status === VideoStatus.LOADING;
     const isLoaded = state.status === VideoStatus.LOADED;
 
     const orientation = state.dimensions?.orientation === Orientation.LANDSCAPE ? "landscape" : "portrait";
 
-    // 默认预设：使用 MediaStore Hooks 实现精细化控制
+    // Default preset: use MediaStore Hooks for fine-grained control
     return (
       (isLoading || isLoaded) &&
       src &&
@@ -393,35 +393,35 @@ export const LazyVideo = memo(function LazyVideo({
     );
   };
 
-  // ========== 组合渲染内容 ==========
+  // ========== Compose Render Content ==========
   /**
-   * 组合所有渲染层：状态层 -> 视频
+   * Combine all render layers: state layer -> video
    */
   const content = (
     <>
-      {/* 海报图作为占位 */}
+      {/* Poster image as placeholder */}
       {placeholderSrc && state.status !== VideoStatus.LOADED && state.dimensions && (
         <img className="absolute poster z-10 inset-0 size-full object-contain" src={placeholderSrc} alt="" aria-hidden="true" />
       )}
 
-      {/* 状态层渲染 - 显示当前加载状态 */}
+      {/* Status layer render - show current loading status */}
       {state.status === VideoStatus.IDLE && renderLoadingState(true)}
       {state.status === VideoStatus.LOADING && renderLoadingState(false)}
       {state.status === VideoStatus.ERROR && renderErrorState()}
 
-      {/* 视频元素 */}
+      {/* Video element */}
       {renderVideoContent()}
 
-      {/* 加载完成后的插槽（例如遮罩层） */}
+      {/* Slot after loaded (e.g. overlay) */}
       {state.status === VideoStatus.LOADED && renderLoadedState()}
     </>
   );
 
-  // ========== 容器属性配置 ==========
+  // ========== Container Properties Configuration ==========
   /**
-   * 构建容器的属性对象
-   * 包含无障碍访问、数据属性、交互事件等
-   * 使用 useMemo 避免不必要的对象重建
+   * Build container properties object
+   * Includes accessibility, data attributes, interaction events, etc.
+   * Use useMemo to avoid unnecessary object recreation
    */
   const containerProps = useMemo(
     () => ({
@@ -430,7 +430,7 @@ export const LazyVideo = memo(function LazyVideo({
       "data-width": state.dimensions ? state.dimensions.width : undefined,
       "data-height": state.dimensions ? state.dimensions.height : undefined,
       role: "video",
-      "aria-label": alt || "视频",
+      "aria-label": alt || "video",
       "aria-busy": state.status === VideoStatus.LOADING,
       style: {
         "--ease": "cubic-bezier(0.25, 0.8, 0.25, 1)",
@@ -440,10 +440,10 @@ export const LazyVideo = memo(function LazyVideo({
     [className, state.status, state.dimensions, alt],
   );
 
-  // ========== 最终渲染 ==========
+  // ========== Final Render ==========
   /**
-   * 如果提供了 children render prop，让外部完全控制容器结构
-   * 否则使用默认的容器包装
+   * If children render prop provided, let external code fully control container structure
+   * Otherwise use default container wrapper
    */
   if (children) {
     return children({
@@ -455,7 +455,7 @@ export const LazyVideo = memo(function LazyVideo({
     });
   }
 
-  // 默认渲染：使用内置容器
+  // Default render: use built-in container
   return (
     <div key={id} ref={containerRef} {...containerProps}>
       {content}

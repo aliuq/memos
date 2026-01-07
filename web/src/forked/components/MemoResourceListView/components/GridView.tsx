@@ -39,11 +39,14 @@ let activeMemo: string | null = null;
 let delta = 0;
 let hasBack = false;
 
+// Global popstate listener to handle browser back/forward navigation
+// Placed here to avoid multiple registrations in memo list loops
+// which would cause conflicts and delta counting issues
+//
 // 这是一个全局的 popstate 监听器
 // 写在这里的主要原因是 MemoGridViewNew 是 memo 列表循环中使用到的组件
 // 如果在组件内注册监听器，会导致多次注册，产生冲突，delta 计数也会混乱
 window.addEventListener("popstate", () => {
-  // console.log("Global popstate event triggered.");
   const lightboxIns = activeMemo && lightboxCache.get(activeMemo);
 
   if (lightboxIns && lightboxIns.pswp?.isOpen) {
@@ -54,10 +57,8 @@ window.addEventListener("popstate", () => {
   }
 
   if (delta || hasBack) {
-    delta += 1; // 如果没有
-    // console.log("Popstate event: lightbox was just closed, adjusting history.", -delta);
+    delta += 1;
     window.history.go(-delta);
-    // closeFlag = false;
     delta = 0;
     return;
   }
@@ -71,7 +72,7 @@ const extraClassMap: Record<number, { root: string; child: string }> = {
 };
 
 /**
- * 显示剩余数量覆盖层
+ * Display overlay showing remaining count
  */
 const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) => {
   if (!remainingCount || remainingCount <= 0) return null;
@@ -94,8 +95,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
 
   const getResourceId = (resource: Resource) => `${resource.name}`.replace(/\//g, "-");
 
-  // 准备 PhotoSwipe 数据源
-  // 默认不包含宽高等数据，将在 itemData 过滤器中动态获取
+  // Prepare PhotoSwipe data source
+  // Width/height data not included by default, will be dynamically fetched in itemData filter
   const dataSources = useMemo<DataSource[]>(() => {
     return resources.map((resource, index) => {
       const resourceUrl = getResourceUrl(resource);
@@ -114,7 +115,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
         filename: resource.filename,
       };
 
-      // 图片
+      // Image
       if (isImage(type)) {
         const thumbUrl = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
         return {
@@ -125,9 +126,9 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           ...commonData,
         };
       }
-      // 视频
+      // Video
       else if (isVideo(type)) {
-        // 视频作为 HTML slide，使用 media-chrome
+        // Video as HTML slide, using media-chrome
         return {
           html: `<media-theme-mini id="${resourceId}" src="${resourceUrl}"></media-theme-mini>`,
           type: "video" as const,
@@ -153,7 +154,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       close: sm,
     });
 
-    // 添加文件名称显示
+    // Add filename display
     lightbox.on("uiRegister", function () {
       lightbox.pswp?.ui?.registerElement({
         name: "caption",
@@ -177,16 +178,15 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     });
 
     lightbox.on("close", () => {
-      // console.log("PhotoSwipeLightbox close");
       pauseVideos();
     });
 
-    // 通过 thumbEl filter 关联缩略图元素（用于开启/关闭动画）
+    // Link thumbnail element via thumbEl filter (for open/close animations)
     lightbox.addFilter("thumbEl", (thumbEl, data) => {
       const galleryEl = galleryRef.current;
       if (!galleryEl) return thumbEl!;
 
-      // 对于图片，返回 img 元素；对于视频，返回 img 元素
+      // Return img element for both images and videos
       const mediaEl = galleryEl.querySelector<HTMLElement>(`[data-resource="${data.resourceId}"] img`);
       if (mediaEl) {
         return mediaEl;
@@ -194,7 +194,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       return thumbEl!;
     });
 
-    // 通过 placeholderSrc filter 提供占位图（用于加载动画）
+    // Provide placeholder via placeholderSrc filter (for loading animation)
     lightbox.addFilter("placeholderSrc", (placeholderSrc, slide) => {
       if (slide.data.msrc) {
         return slide.data.msrc;
@@ -202,14 +202,14 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       return placeholderSrc;
     });
 
-    // 从 DOM 或数据中获取实际的媒体尺寸
+    // Get actual media dimensions from DOM or data
     lightbox.addFilter("itemData", (itemData, index) => {
       const galleryEl = galleryRef.current;
 
       itemData.thumbCropped = true;
 
       if (itemData.type === "image") {
-        // 尝试从 DOM 中获取图片尺寸
+        // Try to get image dimensions from DOM
         if (galleryEl) {
           const el = galleryEl.querySelector(`[data-resource="${itemData.resourceId}"] img`);
           if (el instanceof HTMLImageElement && el.naturalWidth > 0) {
@@ -226,7 +226,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           }
         }
 
-        // 如果 DOM 中没有（第9张以后），需要动态加载图片获取尺寸
+        // If not in DOM (items after 9th), dynamically load to get dimensions
         if ((!itemData.w || !itemData.h) && (itemData.msrc || itemData.src)) {
           getImageResolution(itemData.msrc || itemData.src!).then((res) => {
             itemData.width = res.displayWidth;
@@ -239,32 +239,26 @@ const MemoGridView = ({ resources }: GridViewProps) => {
           });
         }
       } else if (itemData.type === "video") {
-        // 自动处理视频尺寸
+        // Auto-handle video dimensions
         if (itemData.msrc && !itemData.html?.includes("poster=")) {
           itemData.html = itemData.html?.replace("<media-theme-mini", `<media-theme-mini poster="${itemData.msrc}"`);
         }
       }
 
-      console.log("itemData prepared:", itemData);
       return itemData;
     });
 
-    // 预加载的 slide 会触发 contentLoad 事件
-    // lightbox.on("contentLoad", (e) => {
-    //   console.log("PhotoSwipeLightbox contentLoad", e.content.element);
-    // });
-
-    // 监听 slide 切换事件，暂停之前的视频，只有一次
-    // lightbox.on("change", () => {});
+    // Note: Preloaded slides trigger contentLoad event
+    // Note: Slide change event can be used to pause previous videos
 
     // content becomes active (the current slide)
     // can be default prevented
     lightbox.on("contentActivate", ({ content }) => {
-      // 暂停其他视频
+      // Pause other videos
       pauseVideos({ id: content.data.resourceId });
 
       if (content.type === "video") {
-        // 使用更可靠的方式等待视频元素准备好
+        // Wait for video element to be ready with reliable retry mechanism
         const playVideo = () => {
           const currentSlideElement = content.element?.querySelector("media-theme-mini");
           const currentVideo = currentSlideElement?.shadowRoot?.querySelector("video");
@@ -302,7 +296,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     };
   }, [dataSources]);
 
-  // 点击缩略图打开 lightbox
+  // Open lightbox when thumbnail is clicked
   const handleThumbnailClick = useCallback((index: number) => {
     if (lightboxRef.current) {
       pauseVideos();
@@ -311,7 +305,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   }, []);
 
   /**
-   * 渲染图片 - 使用 useCallback 避免重复创建
+   * Render image with useCallback to avoid recreation
    */
   const RenderImage = useCallback(
     ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {
@@ -353,7 +347,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   );
 
   /**
-   * 渲染视频 - 使用 useCallback 避免重复创建
+   * Render video with useCallback to avoid recreation
    */
   const RenderVideo = useCallback(
     ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {

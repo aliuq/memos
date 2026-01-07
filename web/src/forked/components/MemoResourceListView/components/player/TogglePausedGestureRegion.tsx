@@ -4,7 +4,7 @@ const TogglePausedGestureRegion = ({ className }: { className?: string }) => {
   const dispatch = useMediaDispatch();
   const mediaPaused = useMediaSelector((state) => typeof state.mediaPaused !== "boolean" || state.mediaPaused);
 
-  // 点击播放，需要暂停其他 video 元素的播放
+  // Pause other videos when playing
   function togglePlay(e: React.MouseEvent) {
     e.stopPropagation();
 

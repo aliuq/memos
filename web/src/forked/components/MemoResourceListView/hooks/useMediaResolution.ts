@@ -4,16 +4,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { ImageResolution, Orientation, VideoResolution, ResourceResolution } from "../types";
 
-// LRU 缓存策略：最大缓存 100 个项目，避免内存无限增长
+// LRU cache strategy: max 100 items to avoid unlimited memory growth
 const MAX_CACHE_SIZE = 100;
 const mediaResolutionCache = new Map<string, ResourceResolution>();
-const cacheAccessOrder: string[] = []; // 记录访问顺序用于 LRU
+const cacheAccessOrder: string[] = []; // Track access order for LRU
 
 /**
- * 添加到缓存，并应用 LRU 策略
+ * Add to cache and apply LRU strategy
  */
 function addToCache(key: string, value: ResourceResolution) {
-  // 如果已存在，先移除旧的访问记录
+  // If exists, remove old access record first
   if (mediaResolutionCache.has(key)) {
     const index = cacheAccessOrder.indexOf(key);
     if (index > -1) {
@@ -21,11 +21,11 @@ function addToCache(key: string, value: ResourceResolution) {
     }
   }
 
-  // 添加新项
+  // Add new item
   mediaResolutionCache.set(key, value);
   cacheAccessOrder.push(key);
 
-  // 如果超过最大缓存大小，移除最久未使用的项
+  // If exceeds max cache size, remove least recently used item
   if (mediaResolutionCache.size > MAX_CACHE_SIZE) {
     const oldestKey = cacheAccessOrder.shift();
     if (oldestKey) {
@@ -35,12 +35,12 @@ function addToCache(key: string, value: ResourceResolution) {
 }
 
 /**
- * 从缓存获取，并更新访问顺序
+ * Get from cache and update access order
  */
 function getFromCache(key: string): ResourceResolution | undefined {
   const value = mediaResolutionCache.get(key);
   if (value) {
-    // 更新访问顺序：移到最后
+    // Update access order: move to end
     const index = cacheAccessOrder.indexOf(key);
     if (index > -1) {
       cacheAccessOrder.splice(index, 1);
@@ -52,24 +52,24 @@ function getFromCache(key: string): ResourceResolution | undefined {
 
 interface UseMediaResolutionOptions {
   /**
-   * 自定义缓存 key，如果不提供则使用 url 作为 key
+   * Custom cache key. If not provided, the URL will be used as the key
    */
   key?: string;
   /**
-   * 媒体类型：'image' 或 'video'
+   * Media type: 'image' or 'video'
    * @default "image"
    */
   type?: "image" | "video";
   /**
-   * 图片加载超时时间（毫秒），默认 5000ms
+   * Image load timeout in milliseconds (default: 5000ms)
    */
   imageTimeout?: number;
   /**
-   * 视频加载超时时间（毫秒），默认 10000ms
+   * Video load timeout in milliseconds (default: 10000ms)
    */
   videoTimeout?: number;
   /**
-   * 视频缩略图捕获时间点（秒），设置为 null 则不生成缩略图，默认 0.5 秒
+   * Video thumbnail capture time in seconds. Set to null to skip thumbnail generation (default: 0.5s)
    */
   seekTime?: number | null;
 }
@@ -89,17 +89,17 @@ interface UseMediaResolutionResult {
  *
  * @example
  * ```typescript
- * // 使用 URL 作为缓存 key
+ * // Use URL as cache key
  * const { resolution, loading, error, refetch } = useMediaResolution(imageUrl, {
  *   type: "image",
  *   imageTimeout: 5000,
  * });
  *
- * // 使用自定义 key 作为缓存 key
+ * // Use custom key as cache key
  * const { resolution, loading, error } = useMediaResolution(videoUrl, {
  *   type: "video",
  *   key: "my-custom-key",
- *   seekTime: 1.0, // 在第 1 秒处捕获缩略图
+ *   seekTime: 1.0, // Capture thumbnail at 1 second
  *   videoTimeout: 10000,
  * });
  * ```
@@ -109,14 +109,14 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
   const cacheKey = key || src;
 
   const [resolution, setResolution] = useState<ResourceResolution | null>(() => {
-    // 尝试从缓存中获取
+    // Try to get from cache
     return getFromCache(cacheKey) || null;
   });
   const [loading, setLoading] = useState<boolean>(!mediaResolutionCache.has(cacheKey));
   const [error, setError] = useState<Error | null>(null);
 
   const fetchResolution = useCallback(async () => {
-    // 如果已有缓存，直接返回
+    // If cached, return immediately
     const cached = getFromCache(cacheKey);
     if (cached) {
       setResolution(cached);
@@ -140,7 +140,7 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
         throw new Error(`Unsupported media type: ${type}`);
       }
 
-      // 缓存结果
+      // Cache the result
       addToCache(cacheKey, result);
       setResolution(result);
     } catch (err) {
@@ -173,9 +173,9 @@ export function getOrientation(width: number, height: number): Orientation {
 }
 
 /**
- * 从已加载的图片元素计算分辨率信息
- * @param img - 已加载的图片元素
- * @returns 图片分辨率信息
+ * Calculate resolution info from a loaded image element
+ * @param img - Loaded image element
+ * @returns Image resolution info
  */
 export function calculateImageResolution(img: HTMLImageElement): Omit<ImageResolution, "type"> {
   const width = img.naturalWidth;
@@ -187,9 +187,9 @@ export function calculateImageResolution(img: HTMLImageElement): Omit<ImageResol
 }
 
 /**
- * 从已加载的视频元素计算分辨率信息
- * @param video - 已加载的视频元素
- * @returns 视频分辨率信息
+ * Calculate resolution info from a loaded video element
+ * @param video - Loaded video element
+ * @returns Video resolution info
  */
 export function calculateVideoResolution(video: HTMLVideoElement): Omit<VideoResolution, "type"> {
   const width = video.videoWidth;
@@ -200,18 +200,18 @@ export function calculateVideoResolution(video: HTMLVideoElement): Omit<VideoRes
 }
 
 /**
- * 从视频元素生成缩略图
- * @param video - 视频元素
- * @param seekTime - 捕获缩略图的时间点（秒），如果为 null 则使用当前时间
- * @param quality - JPEG 质量，默认 0.8
- * @returns Promise，包含缩略图的 base64 数据
+ * Generate thumbnail from video element
+ * @param video - Video element
+ * @param seekTime - Time to capture thumbnail (in seconds). If null, uses current time
+ * @param quality - JPEG quality (default: 0.8)
+ * @returns Promise with thumbnail base64 data
  */
 export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number | null = null, quality: number = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
     const width = video.videoWidth;
     const height = video.videoHeight;
 
-    // 验证视频尺寸有效性
+    // Validate video dimensions
     if (width <= 0 || height <= 0) {
       reject(new Error("Invalid video dimensions"));
       return;
@@ -220,7 +220,7 @@ export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number
     let hasSeeked = false;
 
     /**
-     * 捕获当前帧作为缩略图
+     * Capture current frame as thumbnail
      */
     const captureFrame = () => {
       if (hasSeeked) return;
@@ -237,10 +237,10 @@ export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number
       }
 
       try {
-        // 将视频帧绘制到 canvas
+        // Draw video frame to canvas
         ctx.drawImage(video, 0, 0, width, height);
 
-        // 转换为 base64 JPEG 格式
+        // Convert to base64 JPEG format
         const thumbnail = canvas.toDataURL("image/jpeg", quality);
         resolve(thumbnail);
       } catch (error) {
@@ -248,9 +248,9 @@ export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number
       }
     };
 
-    // 如果不需要 seek，直接捕获当前帧
+    // If no seek needed, capture current frame directly
     if (isNil(seekTime)) {
-      // 确保视频准备好
+      // Ensure video is ready
       if (video.readyState >= 2) {
         captureFrame();
       } else {
@@ -259,7 +259,7 @@ export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number
       return;
     }
 
-    // 需要 seek 到指定时间点
+    // Need to seek to specified time
     const videoDuration = video.duration || 0;
     if (!isFinite(videoDuration) || videoDuration <= 0) {
       reject(new Error("Invalid video duration"));
@@ -268,17 +268,17 @@ export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number
 
     const targetTime = Math.min(Math.max(seekTime!, 0), videoDuration);
 
-    // 监听 seeked 事件
+    // Listen for seeked event
     video.onseeked = captureFrame;
 
-    // 监听 canplay 事件作为备用
+    // Listen for canplay event as fallback
     video.oncanplay = () => {
       if (!hasSeeked) {
         captureFrame();
       }
     };
 
-    // 设置视频播放位置到目标时间点
+    // Set video playback position to target time
     try {
       video.currentTime = targetTime;
     } catch (error) {
@@ -315,7 +315,7 @@ export function getImageResolution(src: string, timeout = 5000): Promise<Omit<Im
       }
       img.onload = null;
       img.onerror = null;
-      img.src = ""; // 清理引用
+      img.src = ""; // Clean up reference
     };
 
     const resolveOnce = (value: Omit<ImageResolution, "type">) => {
@@ -334,7 +334,7 @@ export function getImageResolution(src: string, timeout = 5000): Promise<Omit<Im
       }
     };
 
-    // 设置超时
+    // Set up timeout
     timeoutId = setTimeout(() => {
       rejectOnce(`Image resolution fetch timeout after ${timeout}ms: ${src}`);
     }, timeout);
@@ -345,7 +345,7 @@ export function getImageResolution(src: string, timeout = 5000): Promise<Omit<Im
     };
 
     img.onerror = (event) => {
-      // 提供更详细的错误信息
+      // Provide more detailed error info
       let errorMessage = "Image resolution fetch failed";
 
       if (event instanceof ErrorEvent && event.message) {
@@ -363,23 +363,23 @@ export function getImageResolution(src: string, timeout = 5000): Promise<Omit<Im
 }
 
 /**
- * 从视频 URL 获取视频分辨率、方向和缩略图
+ * Get video resolution, orientation, and thumbnail from video URL
  *
- * 该函数会创建一个隐藏的 video 元素来加载视频元数据，获取视频的宽高信息，
- * 并可选择性地在指定时间点捕获一帧作为缩略图。
+ * This function creates a hidden video element to load video metadata, extract width/height info,
+ * and optionally capture a frame at the specified time as a thumbnail.
  *
- * @param src - 视频文件的 URL 地址
- * @param seekTime - 捕获缩略图的时间点（秒），设置为 null 则不生成缩略图。默认 0.5 秒
- * @param timeout - 超时时间（毫秒），默认 10000ms（10秒）
- * @returns Promise，包含视频的宽度、高度、方向和可选的缩略图 base64 数据
+ * @param src - Video file URL
+ * @param seekTime - Time to capture thumbnail (in seconds). Set to null to skip thumbnail generation (default: 0.5s)
+ * @param timeout - Timeout in milliseconds (default: 10000ms / 10s)
+ * @returns Promise with video width, height, orientation, and optional thumbnail base64 data
  *
  * @example
  * ```typescript
- * // 获取视频分辨率和缩略图
+ * // Get video resolution with thumbnail
  * const result = await getVideoResolution('video.mp4', 1.0);
  * console.log(result); // { width: 1920, height: 1080, orientation: 'landscape', thumbnail: 'data:image/jpeg;base64,...' }
  *
- * // 仅获取分辨率，不生成缩略图
+ * // Get resolution only, no thumbnail
  * const result = await getVideoResolution('video.mp4', null);
  * console.log(result); // { width: 1920, height: 1080, orientation: 'landscape' }
  * ```
@@ -392,60 +392,60 @@ export function getVideoResolution(
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
 
-    // 配置视频元素属性
-    video.preload = "metadata"; // 只加载元数据，不加载完整视频
+    // Configure video element attributes
+    video.preload = "metadata"; // Only load metadata, not full video
     video.src = src;
-    video.crossOrigin = "anonymous"; // 允许跨域访问（用于 canvas 截图）
-    video.muted = true; // 静音
-    video.playsInline = true; // 在移动设备上内联播放
-    video.style.position = "fixed"; // 固定定位
-    video.style.left = "-9999px"; // 移出可视区域
+    video.crossOrigin = "anonymous"; // Allow CORS (for canvas capture)
+    video.muted = true; // Muted
+    video.playsInline = true; // Inline playback on mobile
+    video.style.position = "fixed"; // Fixed position
+    video.style.left = "-9999px"; // Move out of viewport
     video.style.top = "-9999px";
 
-    // 添加到 DOM（某些浏览器需要元素在 DOM 中才能触发事件）
+    // Append to DOM (some browsers require element to be in DOM for events)
     document.body.appendChild(video);
 
-    // 标记是否已经完成（防止多次调用 resolve/reject）
+    // Flag to prevent multiple resolve/reject calls
     let isResolved = false;
-    // 存储超时定时器 ID
+    // Store timeout ID
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     /**
-     * 清理资源函数
-     * - 清除超时定时器
-     * - 移除所有事件监听器
-     * - 从 DOM 中移除视频元素
-     * - 释放视频资源
+     * Cleanup function
+     * - Clear timeout timer
+     * - Remove all event listeners
+     * - Remove video element from DOM
+     * - Release video resources
      */
     const cleanup = () => {
       if (isResolved) return;
       isResolved = true;
 
-      // 清除超时定时器
+      // Clear timeout timer
       if (timeoutId) {
         clearTimeout(timeoutId);
         timeoutId = null;
       }
 
-      // 移除事件监听器
+      // Remove event listeners
       video.onloadedmetadata = null;
       video.onerror = null;
       video.onseeked = null;
       video.oncanplay = null;
 
-      // 停止播放并释放资源
+      // Stop playback and release resources
       video.pause();
       video.removeAttribute("src");
-      video.load(); // 重置视频元素状态
+      video.load(); // Reset video element state
 
-      // 从 DOM 中移除
+      // Remove from DOM
       if (video.parentNode) {
         video.parentNode.removeChild(video);
       }
     };
 
     /**
-     * 统一的 resolve 处理函数，确保只调用一次
+     * Unified resolve handler, ensure called only once
      */
     const resolveOnce = (value: Omit<VideoResolution, "type"> & { thumbnail?: string }) => {
       if (!isResolved) {
@@ -455,7 +455,7 @@ export function getVideoResolution(
     };
 
     /**
-     * 统一的 reject 处理函数，确保只调用一次
+     * Unified reject handler, ensure called only once
      */
     const rejectOnce = (reason: string) => {
       if (!isResolved) {
@@ -464,25 +464,25 @@ export function getVideoResolution(
       }
     };
 
-    // 设置超时定时器
+    // Set up timeout timer
     timeoutId = setTimeout(() => {
       rejectOnce(`Video load timed out after ${timeout}ms`);
     }, timeout);
 
-    // 错误处理：视频加载失败
+    // Error handler: video load failed
     video.onerror = (event) => {
       let errorMessage = "Video load failed";
 
-      // 尝试获取更详细的错误信息
+      // Try to get more detailed error info
       if (event instanceof ErrorEvent && event.message) {
         errorMessage += `: ${event.message}`;
       } else if (video.error) {
         const errorCode = video.error.code;
         const errorMessages: Record<number, string> = {
-          1: "MEDIA_ERR_ABORTED - 加载被中止",
-          2: "MEDIA_ERR_NETWORK - 网络错误",
-          3: "MEDIA_ERR_DECODE - 解码错误",
-          4: "MEDIA_ERR_SRC_NOT_SUPPORTED - 不支持的视频格式",
+          1: "MEDIA_ERR_ABORTED - Load aborted",
+          2: "MEDIA_ERR_NETWORK - Network error",
+          3: "MEDIA_ERR_DECODE - Decode error",
+          4: "MEDIA_ERR_SRC_NOT_SUPPORTED - Unsupported video format",
         };
         errorMessage += `: ${errorMessages[errorCode] || `Unknown error code ${errorCode}`}`;
       }
@@ -490,35 +490,35 @@ export function getVideoResolution(
       rejectOnce(errorMessage);
     };
 
-    // 元数据加载完成
+    // Metadata loaded
     video.onloadedmetadata = () => {
       const { width, height, orientation } = calculateVideoResolution(video);
 
-      // 验证视频尺寸有效性
+      // Validate video dimensions
       if (width <= 0 || height <= 0) {
         rejectOnce("Invalid video dimensions");
         return;
       }
 
-      // 如果不需要生成缩略图，直接返回分辨率信息
+      // If no thumbnail generation needed, return resolution info directly
       if (isNil(seekTime)) {
         resolveOnce({ width, height, orientation });
         return;
       }
 
-      // 计算目标时间点（确保在视频时长范围内）
+      // Calculate target time (ensure within video duration)
       const videoDuration = video.duration || 0;
       if (!isFinite(videoDuration) || videoDuration <= 0) {
-        // 如果无法获取视频时长，返回不带缩略图的结果
+        // If unable to get video duration, return without thumbnail
         resolveOnce({ width, height, orientation });
         return;
       }
 
       const targetTime = Math.min(Math.max(seekTime!, 0), videoDuration);
-      let hasSeeked = false; // 防止多次触发
+      let hasSeeked = false; // Prevent multiple triggers
 
       /**
-       * 捕获视频帧作为缩略图
+       * Capture video frame as thumbnail
        */
       const captureFrame = () => {
         if (hasSeeked) return;
@@ -530,42 +530,42 @@ export function getVideoResolution(
 
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          // 无法获取 canvas 上下文，返回不带缩略图的结果
+          // Unable to get canvas context, return without thumbnail
           resolveOnce({ width, height, orientation });
           return;
         }
 
         try {
-          // 将视频帧绘制到 canvas
+          // Draw video frame to canvas
           ctx.drawImage(video, 0, 0, width, height);
 
-          // 转换为 base64 JPEG 格式（0.8 质量）
+          // Convert to base64 JPEG format (0.8 quality)
           const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
 
           resolveOnce({ width, height, thumbnail, orientation });
         } catch (error) {
-          // 截图失败（可能是跨域问题），返回不带缩略图的结果
+          // Screenshot failed (possibly CORS issue), return without thumbnail
           console.warn("Failed to capture video thumbnail:", error);
           resolveOnce({ width, height, orientation });
         }
       };
 
-      // 监听 seeked 事件（定位完成后触发）
+      // Listen for seeked event (triggered after seek completes)
       video.onseeked = captureFrame;
 
-      // 监听 canplay 事件（视频准备好播放时触发）
-      // 某些浏览器可能不会触发 seeked 事件，使用 canplay 作为备用
+      // Listen for canplay event (triggered when video is ready to play)
+      // Some browsers may not trigger seeked event, use canplay as fallback
       video.oncanplay = () => {
         if (!hasSeeked) {
           captureFrame();
         }
       };
 
-      // 设置视频播放位置到目标时间点
+      // Set video playback position to target time
       try {
         video.currentTime = targetTime;
       } catch (error) {
-        // 如果设置 currentTime 失败，返回不带缩略图的结果
+        // If setting currentTime fails, return without thumbnail
         console.warn("Failed to seek video:", error);
         resolveOnce({ width, height, orientation });
       }
@@ -574,8 +574,8 @@ export function getVideoResolution(
 }
 
 /**
- * 清除缓存中的特定项或全部缓存
- * @param key - 要清除的缓存 key，如果不提供则清除全部缓存
+ * Clear specific cache item or all cache
+ * @param key - Cache key to clear. If not provided, clears all cache
  */
 export function clearMediaResolutionCache(key?: string): void {
   if (key) {
@@ -586,7 +586,7 @@ export function clearMediaResolutionCache(key?: string): void {
 }
 
 /**
- * 获取当前缓存的大小
+ * Get current cache size
  */
 export function getMediaResolutionCacheSize(): number {
   return mediaResolutionCache.size;

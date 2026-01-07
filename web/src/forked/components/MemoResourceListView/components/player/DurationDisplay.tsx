@@ -5,9 +5,9 @@ import IconButton, { type IconButtonProps } from "./IconButton";
 const { formatTime } = timeUtils;
 
 type DurationDisplayProps = IconButtonProps & {
-  /** 是否显示剩余时间（倒计时），否则显示总时长 */
+  /** Show remaining time (countdown) or total duration */
   remaining?: boolean;
-  /** 当显示剩余时间时，是否取绝对值以避免出现负号 */
+  /** Use absolute value to avoid negative sign when showing remaining time */
   abs?: boolean;
 };
 
@@ -20,8 +20,8 @@ const DurationDisplay = ({ remaining = true, abs = false, className, ...rest }: 
   return (
     <IconButton name="duration-display" className={cn("mx-2 cursor-default text-xs sm:text-sm", className)} {...rest}>
       {/**
-       * Media Chrome 的 formatTime(seconds, guide) 会把秒数和最大时长格式化为时间字符串（例如 "5:32"）。
-       * 传入负值会以倒计时形式显示（例如 "-2:14"）。
+       * Media Chrome's formatTime(seconds, guide) formats seconds and max duration to time string (e.g. "5:32").
+       * Passing negative value displays as countdown (e.g. "-2:14").
        */}
       {remaining ? formatTime(abs ? Math.abs(val) : val, mediaDuration) : formatTime(mediaDuration ?? 0, mediaDuration)}
     </IconButton>

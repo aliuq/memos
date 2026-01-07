@@ -3,7 +3,7 @@ import { MediaActionTypes, useMediaDispatch, useMediaSelector } from "media-chro
 import { type ComponentType } from "react";
 import IconButton, { IconButtonProps } from "./IconButton";
 
-/** 将来可能会添加的音量级别 */
+/** Volume levels that may be added in the future */
 const VolumeLevel = {
   HIGH: "high",
   MEDIUM: "medium",
@@ -11,7 +11,7 @@ const VolumeLevel = {
   OFF: "off",
 } as const;
 
-/** 根据音量级别映射到对应的图标组件 */
+/** Map volume level to corresponding icon component */
 const VolumeIconComponentMap: Record<string, ComponentType<any>> = {
   [VolumeLevel.HIGH]: Volume2,
   [VolumeLevel.MEDIUM]: VolumeX,
@@ -20,12 +20,12 @@ const VolumeIconComponentMap: Record<string, ComponentType<any>> = {
   DEFAULT: VolumeOff,
 };
 
-/** 带有音量状态提示的静音按钮 */
+/** Mute button with volume status indication */
 const MuteButton = ({ className, ...rest }: Omit<IconButtonProps, "label">) => {
   const dispatch = useMediaDispatch();
   const mediaVolumeLevel = useMediaSelector((state) => state.mediaVolumeLevel);
   const mediaPseudoMuted = mediaVolumeLevel === VolumeLevel.OFF;
-  const label = mediaPseudoMuted ? "取消静音" : "静音";
+  const label = mediaPseudoMuted ? "Unmute" : "Mute";
   const IconComponent = VolumeIconComponentMap[mediaVolumeLevel ?? "DEFAULT"] ?? VolumeOff;
 
   return (

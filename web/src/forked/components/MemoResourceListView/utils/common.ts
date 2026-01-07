@@ -10,7 +10,7 @@ export async function retry(fn: () => boolean | Promise<boolean>, { retries = 3,
       const result = await fn();
       if (result) return true;
     } catch (error) {
-      // 调用回调
+      // Call retry callback
       onRetry?.(attempt + 1, error);
     }
 
@@ -23,7 +23,7 @@ export async function retry(fn: () => boolean | Promise<boolean>, { retries = 3,
 }
 
 /**
- * 插槽函数
+ * Render slot function - supports both static content and function that returns content
  *
  * @example
  * ```ts

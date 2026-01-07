@@ -18,7 +18,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-// 全局音量状态管理
+// Global volume state management
 const globalVolumeState = {
   muted: false,
   volume: 1,
@@ -64,13 +64,11 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
   const [localVolume, setLocalVolume] = useState(globalVolumeState.volume);
   const isUpdatingFromGlobalRef = useRef(false);
 
-  // 移动端判断，通过媒体查询是否匹配小屏幕 640px
-  const isMobile = useMemo(() => {
-    return window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
-  }, []);
+  // Mobile detection and style configuration
+  const { isMobile, chromeStyles } = useMemo(() => {
+    const isMobileDevice = window.matchMedia?.("(max-width: 640px)").matches ?? false;
 
-  const chromeStyles = useMemo(() => {
-    const styles: any = {
+    const chromeStyles: React.CSSProperties & { [key: string]: string | undefined } = {
       "--media-primary-color": "white",
       display: "flex",
       width: "100%",
@@ -81,14 +79,17 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
       justifyContent: "center",
     };
 
-    if (isMobile) {
-      styles["--media-control-padding"] = "10px";
+    if (isMobileDevice) {
+      chromeStyles["--media-control-padding"] = "10px";
     }
 
-    return styles;
-  }, [isMobile]);
+    return {
+      isMobile: isMobileDevice,
+      chromeStyles: chromeStyles,
+    };
+  }, []);
 
-  // 订阅全局状态变化
+  // Subscribe to global state changes
   useEffect(() => {
     const unsubscribe = globalVolumeState.subscribe(() => {
       isUpdatingFromGlobalRef.current = true;
@@ -98,13 +99,13 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
     return unsubscribe;
   }, []);
 
-  // 同步 video 元素的状态到全局
+  // Sync video element state to global
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleVolumeChange = () => {
-      // 避免循环更新：如果是由全局状态触发的更新，不要再次更新全局状态
+      // Avoid circular updates: don't update global state if triggered by global state
       if (isUpdatingFromGlobalRef.current) {
         isUpdatingFromGlobalRef.current = false;
         return;
@@ -117,7 +118,7 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
     return () => video.removeEventListener("volumechange", handleVolumeChange);
   }, []);
 
-  // 应用全局状态到 video 元素
+  // Apply global state to video element
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
@@ -187,7 +188,7 @@ class MediaThemeMini extends HTMLElement {
   }
 
   connectedCallback() {
-    // 检查是否已经有 Shadow DOM，避免重复创建
+    // Check if Shadow DOM already exists to avoid duplication
     if (!this.shadowRoot) {
       const rootDiv = document.createElement("div");
       rootDiv.style.width = "100%";
@@ -195,7 +196,7 @@ class MediaThemeMini extends HTMLElement {
       this.attachShadow({ mode: "open" }).appendChild(rootDiv);
     }
 
-    // 如果 root 已被卸载或不存在，重新创建
+    // If root has been unmounted or doesn't exist, recreate it
     if (!this.root || this.isRootUnmounted) {
       const rootDiv = this.shadowRoot!.firstChild as HTMLElement;
       if (rootDiv) {
@@ -212,7 +213,7 @@ class MediaThemeMini extends HTMLElement {
   }
 
   disconnectedCallback() {
-    // 延迟卸载，避免在快速切换时出现问题
+    // Delay unmount to avoid issues with rapid switching
     setTimeout(() => {
       if (this.root && !this.isConnected) {
         this.root.unmount();
@@ -228,14 +229,12 @@ class MediaThemeMini extends HTMLElement {
     const props: PlayerProps = {
       src: srcAttr ?? undefined,
       autoPlay: this.hasAttribute("autoplay"),
-      muted: this.hasAttribute("muted") ? true : false, // 默认静音，除非明确设置 muted="false"
+      muted: this.hasAttribute("muted") ? true : false, // Default muted unless explicitly set to muted="false"
       loop: this.hasAttribute("loop"),
       preload: (this.getAttribute("preload") as PlayerProps["preload"]) || "auto",
       poster: this.getAttribute("poster") ?? undefined,
       crossOrigin: (this.getAttribute("crossorigin") as PlayerProps["crossOrigin"]) || "",
     };
-
-    console.log("MediaThemeMini render props:", props);
 
     this.root.render(<Player {...props} />);
   }

@@ -2,38 +2,38 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 export interface UseIntersectionObserverOptions extends IntersectionObserverInit {
   /**
-   * 是否只触发一次（元素进入视图后立即停止观察）
+   * Trigger only once (stop observing after element enters viewport)
    * @default false
    */
   once?: boolean;
   /**
-   * 是否启用观察
+   * Enable observation
    * @default true
    */
   enabled?: boolean;
   /**
-   * 入场动画延迟（毫秒）
-   * 用于在元素进入视图后延迟触发动画状态
+   * Animation delay in milliseconds
+   * Used to delay animation state trigger after element enters viewport
    * @default 0
    */
   animationDelay?: number;
   /**
-   * 进入视图时的回调
+   * Callback when entering viewport
    */
   onIntersecting?: (entry: IntersectionObserverEntry) => void;
   /**
-   * 离开视图时的回调
+   * Callback when leaving viewport
    */
   onLeaving?: (entry: IntersectionObserverEntry) => void;
 }
 
 /**
- * 高性能的 IntersectionObserver Hook
- * 用于监听元素是否进入视口，支持入场动画
+ * High-performance IntersectionObserver Hook
+ * Monitors whether element enters viewport, supports entrance animations
  *
  * @example
  * ```tsx
- * // 基础用法
+ * // Basic usage
  * const { ref, isIntersecting } = useIntersectionObserver({
  *   threshold: 0.1,
  *   rootMargin: '100px',
@@ -44,7 +44,7 @@ export interface UseIntersectionObserverOptions extends IntersectionObserverInit
  *
  * @example
  * ```tsx
- * // 带入场动画
+ * // With entrance animation
  * const { ref, hasEntered } = useIntersectionObserver({
  *   once: true,
  *   animationDelay: 50,
@@ -82,7 +82,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
   const hasIntersectedRef = useRef(false);
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 使用 useCallback 优化回调函数
+  // Optimize callback with useCallback
   const handleIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
@@ -94,7 +94,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
         hasIntersectedRef.current = true;
         onIntersecting?.(entry);
 
-        // 延迟触发入场动画状态
+        // Delay entrance animation trigger
         if (animationDelay > 0) {
           animationTimerRef.current = setTimeout(() => {
             setHasEntered(true);
@@ -103,7 +103,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
           setHasEntered(true);
         }
 
-        // 如果只需要触发一次，立即断开观察
+        // If only need to trigger once, immediately disconnect observer
         if (once && observerRef.current && elementRef.current) {
           observerRef.current.unobserve(elementRef.current);
         }
@@ -115,7 +115,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
   );
 
   useEffect(() => {
-    // 如果未启用或不支持 IntersectionObserver，直接返回
+    // Return early if not enabled or IntersectionObserver not supported
     if (!enabled || typeof IntersectionObserver === "undefined") {
       return;
     }
@@ -125,12 +125,12 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
       return;
     }
 
-    // 清理之前的 observer
+    // Clean up previous observer
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
 
-    // 创建新的 observer
+    // Create new observer
     observerRef.current = new IntersectionObserver(handleIntersect, {
       threshold,
       root,
@@ -139,13 +139,13 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
 
     observerRef.current.observe(element);
 
-    // 清理函数
+    // Cleanup function
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
         observerRef.current = null;
       }
-      // 清理动画定时器
+      // Clean up animation timer
       if (animationTimerRef.current) {
         clearTimeout(animationTimerRef.current);
         animationTimerRef.current = null;
@@ -153,14 +153,14 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(opt
     };
   }, [enabled, threshold, root, rootMargin, handleIntersect]);
 
-  // 提供重置函数，用于重新开始观察
+  // Provide reset function to restart observation
   const reset = useCallback(() => {
     hasIntersectedRef.current = false;
     setIsIntersecting(false);
     setHasEntered(false);
     setEntry(null);
 
-    // 清理动画定时器
+    // Clean up animation timer
     if (animationTimerRef.current) {
       clearTimeout(animationTimerRef.current);
       animationTimerRef.current = null;

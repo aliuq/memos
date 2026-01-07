@@ -27,11 +27,11 @@ export interface GridViewProps {
 }
 
 export enum Orientation {
-  /** 竖屏 */
+  /** Portrait 竖屏 */
   PORTRAIT = "portrait",
-  /** 横屏 */
+  /** Landscape 横屏 */
   LANDSCAPE = "landscape",
-  /** 正方形 */
+  /** Square 正方形 */
   SQUARE = "square",
 }
 

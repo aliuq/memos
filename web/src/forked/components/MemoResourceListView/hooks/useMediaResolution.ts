@@ -88,10 +88,10 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
 
       if (type === "image") {
         const imgRes = await getImageResolution(src, imageTimeout);
-        result = { type: "image", ...imgRes };
+        result = { type: "image", ...imgRes } as ImageResolution;
       } else if (type === "video") {
         const vidRes = await getVideoResolution(src, seekTime, videoTimeout);
-        result = { type: "video", ...vidRes };
+        result = { type: "video", ...vidRes } as VideoResolution;
       } else {
         throw new Error(`Unsupported media type: ${type}`);
       }

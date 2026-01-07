@@ -128,7 +128,6 @@ export function pauseVideos({ id, shadow = true, dom = true }: PauseVideosOption
   if (dom) {
     // 普通 DOM 中的视频暂停
     const videos = document.querySelectorAll<HTMLVideoElement>("video");
-    console.log("Pausing videos in DOM:", videos);
     videos.forEach((video) => {
       video.pause();
     });

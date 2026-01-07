@@ -81,7 +81,7 @@ const extraClassMap: Record<number, { root: string; child: string }> = {
  * 显示剩余数量覆盖层
  */
 const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) => {
-  if (!remainingCount || remainingCount <= 0) return;
+  if (!remainingCount || remainingCount <= 0) return null;
   return (
     <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold cursor-pointer z-10">
       +{remainingCount}

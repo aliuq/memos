@@ -1,15 +1,17 @@
 interface RetryOptions {
   retries: number;
   delay: number;
+  onRetry?: (attempt: number, error: any) => void;
 }
 
-export async function retry(fn: () => boolean | Promise<boolean>, { retries = 3, delay = 1000 }: RetryOptions): Promise<boolean> {
+export async function retry(fn: () => boolean | Promise<boolean>, { retries = 3, delay = 1000, onRetry }: RetryOptions): Promise<boolean> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const result = await fn();
       if (result) return true;
-    } catch {
-      // Continue to next attempt
+    } catch (error) {
+      // 调用回调
+      onRetry?.(attempt + 1, error);
     }
 
     if (attempt < retries - 1) {

@@ -1,7 +1,7 @@
 import { Image, TriangleAlert } from "lucide-react";
 import { memo, useRef, useEffect, useCallback, ReactNode, useReducer } from "react";
 import { cn } from "@/utils";
-import { useIntersectionObserver, useMediaResolution } from "../hooks";
+import { useIntersectionObserver, calculateImageResolution } from "../hooks";
 import { ImageResolution } from "../types";
 import { renderSlot } from "../utils";
 import RenderMediaState from "./RenderMediaState";
@@ -223,7 +223,7 @@ function imageReducer(state: ImageState, action: ImageAction): ImageState {
  * - 使用 memo 优化重复渲染
  */
 export const LazyImage = memo(function LazyImage({
-  id,
+  id: _id, // eslint-disable-line @typescript-eslint/no-unused-vars
   src,
   alt = "",
   className = "",
@@ -250,6 +250,19 @@ export const LazyImage = memo(function LazyImage({
 
   // ========== Refs ==========
   const imgRef = useRef<HTMLImageElement>(null);
+  // 使用 ref 存储回调函数，避免因回调变化导致 effect 重新执行
+  const onLoadRef = useRef(onLoad);
+  const onStatusChangeRef = useRef(onStatusChange);
+  const onDimensionsLoadRef = useRef(onDimensionsLoad);
+  const onErrorRef = useRef(onError);
+
+  // 更新 ref 引用
+  useEffect(() => {
+    onLoadRef.current = onLoad;
+    onStatusChangeRef.current = onStatusChange;
+    onDimensionsLoadRef.current = onDimensionsLoad;
+    onErrorRef.current = onError;
+  });
 
   // ========== 视口检测 ==========
   /**
@@ -269,16 +282,16 @@ export const LazyImage = memo(function LazyImage({
    * 统一处理所有状态变化的副作用
    */
   useEffect(() => {
-    onStatusChange?.(state.status);
+    onStatusChangeRef.current?.(state.status);
 
     if (state.dimensions) {
-      onDimensionsLoad?.(state.dimensions);
+      onDimensionsLoadRef.current?.(state.dimensions);
     }
 
     if (state.error) {
-      onError?.(state.error);
+      onErrorRef.current?.(state.error);
     }
-  }, [state.status, state.dimensions, state.error, onStatusChange, onDimensionsLoad, onError]);
+  }, [state.status, state.dimensions, state.error]);
 
   // ========== src 变化时重置状态 ==========
   /**
@@ -298,36 +311,26 @@ export const LazyImage = memo(function LazyImage({
     }
   }, [hasEntered, state.status]);
 
-  // ========== 获取图片分辨率 ==========
-  /**
-   * 在 LOADING 状态且未获取分辨率时，获取图片分辨率
-   */
-  const { resolution: imageResolution, error: resolutionError } = useMediaResolution(src, {
-    type: "image",
-    key: id,
-  });
-
-  useEffect(() => {
-    if (state.status !== ImageStatus.LOADING || state.dimensions) {
-      return;
-    }
-
-    if (imageResolution) {
-      dispatch({ type: "DIMENSIONS_LOADED", payload: imageResolution as ImageResolution });
-    } else if (resolutionError) {
-      console.warn("获取图片分辨率失败，将继续加载图片:", resolutionError);
-      // 获取分辨率失败不阻塞图片加载，继续显示图片
-    }
-  }, [state.status, state.dimensions, imageResolution, resolutionError]);
-
   // ========== 图片加载事件处理 ==========
   /**
    * 图片加载成功的回调
    */
   const handleLoad = useCallback(() => {
+    // 从图片元素获取实际尺寸
+    if (imgRef.current) {
+      const resolution = calculateImageResolution(imgRef.current);
+
+      if (resolution.width > 0 && resolution.height > 0) {
+        const dimensions = { type: "image", ...resolution } as ImageResolution;
+
+        // 更新尺寸信息
+        dispatch({ type: "DIMENSIONS_LOADED", payload: dimensions });
+      }
+    }
+
     dispatch({ type: "LOAD_SUCCESS" });
-    onLoad?.();
-  }, [onLoad]);
+    onLoadRef.current?.();
+  }, []);
 
   /**
    * 图片加载失败的回调

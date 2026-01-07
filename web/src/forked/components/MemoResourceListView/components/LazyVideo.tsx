@@ -38,7 +38,7 @@ interface LazyVideoProps {
   /** 容器的额外 CSS 类名 */
   className?: string;
   /** 视频加载成功回调 */
-  onLoad?: () => void;
+  onLoad?: (state: VideoState) => void;
   /** 状态变化回调 */
   onStatusChange?: (status: VideoStatus) => void;
   /** 视频尺寸加载完成回调 */
@@ -275,8 +275,8 @@ export const LazyVideo = memo(function LazyVideo({
    */
   const handleLoadedData = useCallback(() => {
     dispatch({ type: "LOAD_SUCCESS" });
-    onLoad?.();
-  }, [onLoad]);
+    onLoad?.(state);
+  }, [onLoad, state]);
 
   /**
    * 视频元数据加载完成的回调
@@ -285,9 +285,9 @@ export const LazyVideo = memo(function LazyVideo({
   const handleLoadedMetadata = useCallback(() => {
     if (isIosRef.current && state.status !== VideoStatus.LOADED) {
       dispatch({ type: "LOAD_SUCCESS" });
-      onLoad?.();
+      onLoad?.(state);
     }
-  }, [onLoad, state.status]);
+  }, [onLoad, state]);
 
   /**
    * 视频加载失败的回调

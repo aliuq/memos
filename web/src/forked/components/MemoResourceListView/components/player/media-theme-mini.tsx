@@ -13,6 +13,7 @@ import {
   MediaFullscreenButton,
   MediaErrorDialog,
   MediaDurationDisplay,
+  MediaPosterImage,
 } from "media-chrome/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -137,9 +138,9 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
         autoPlay={autoPlay}
         muted={localMuted}
         loop={loop}
-        poster={poster}
         crossOrigin={crossOrigin}
       ></video>
+      <MediaPosterImage slot="poster" src={poster} style={{ width: "100%", height: "100%", aspectRatio: "16/9", objectFit: "contain" }} />
       <MediaErrorDialog role="dialog" slot="dialog"></MediaErrorDialog>
       <MediaLoadingIndicator
         noAutohide

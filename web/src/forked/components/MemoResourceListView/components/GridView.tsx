@@ -17,17 +17,10 @@ interface GridViewProps {
 }
 
 interface RenderMediaProps {
-  key?: string;
-  type: string;
-  resource: Resource;
-  resourceUrl: string;
-  resourceId: string;
+  dataSource: DataSource;
   index: number;
   len: number;
   remainingCount?: number;
-  isLast: boolean;
-  alt?: string;
-  filename: string;
 }
 
 type DataSource = SlideData & {
@@ -91,7 +84,7 @@ const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) =
 
 const MemoGridView = ({ resources }: GridViewProps) => {
   const len = resources.length;
-  const memoId = resources[0]?.memo!.replace(/\//g, "-");
+  const memoId = resources[0]?.memo?.replace(/\//g, "-") || "unknown";
   const galleryRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<PhotoSwipeLightbox | null>(null);
 
@@ -104,47 +97,45 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   // 准备 PhotoSwipe 数据源
   // 默认不包含宽高等数据，将在 itemData 过滤器中动态获取
   const dataSources = useMemo<DataSource[]>(() => {
-    return resources
-      .map((resource, index) => {
-        const resourceUrl = getResourceUrl(resource);
-        const type = getResourceType(resource);
-        const resourceId = getResourceId(resource);
-        const isFirstMemo = index === 0;
-        const isLastMemo = index === MAX_DISPLAY_COUNT - 1;
+    return resources.map((resource, index) => {
+      const resourceUrl = getResourceUrl(resource);
+      const type = getResourceType(resource);
+      const resourceId = getResourceId(resource);
+      const isFirstMemo = index === 0;
+      const isLastMemo = index === MAX_DISPLAY_COUNT - 1;
 
-        const commonData = {
-          resourceId,
-          resourceUrl,
-          isFirst: isFirstMemo,
-          isLast: isLastMemo,
-          original: resource,
-          index,
-          filename: resource.filename,
+      const commonData = {
+        resourceId,
+        resourceUrl,
+        isFirst: isFirstMemo,
+        isLast: isLastMemo,
+        original: resource,
+        index,
+        filename: resource.filename,
+      };
+
+      // 图片
+      if (isImage(type)) {
+        const thumbUrl = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
+        return {
+          src: resourceUrl,
+          msrc: thumbUrl,
+          type: "image" as const,
+          alt: resource.filename,
+          ...commonData,
         };
-
-        // 图片
-        if (isImage(type)) {
-          const thumbUrl = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
-          return {
-            src: resourceUrl,
-            msrc: thumbUrl,
-            type: "image" as const,
-            alt: resource.filename,
-            ...commonData,
-          };
-        }
-        // 视频
-        else if (isVideo(type)) {
-          // 视频作为 HTML slide，使用 media-chrome
-          return {
-            html: `<media-theme-mini id="${resourceId}" src="${resourceUrl}"></media-theme-mini>`,
-            type: "video" as const,
-            alt: resource.filename,
-            ...commonData,
-          };
-        }
-      })
-      .filter(Boolean) as DataSource[];
+      }
+      // 视频
+      else if (isVideo(type)) {
+        // 视频作为 HTML slide，使用 media-chrome
+        return {
+          html: `<media-theme-mini id="${resourceId}" src="${resourceUrl}"></media-theme-mini>`,
+          type: "video" as const,
+          alt: resource.filename,
+          ...commonData,
+        };
+      }
+    }) as DataSource[];
   }, [resources]);
 
   const displayCount = Math.min(dataSources.length, MAX_DISPLAY_COUNT);
@@ -249,7 +240,12 @@ const MemoGridView = ({ resources }: GridViewProps) => {
         }
       } else if (itemData.type === "video") {
         // 自动处理视频尺寸
+        if (itemData.msrc && !itemData.html?.includes("poster=")) {
+          itemData.html = itemData.html?.replace("<media-theme-mini", `<media-theme-mini poster="${itemData.msrc}"`);
+        }
       }
+
+      console.log("itemData prepared:", itemData);
       return itemData;
     });
 
@@ -315,108 +311,95 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   }, []);
 
   /**
-   * 渲染图片
+   * 渲染图片 - 使用 useCallback 避免重复创建
    */
-  const RenderImage = (props: RenderMediaProps) => {
-    const { type, resource, resourceUrl, resourceId, index, len, remainingCount, isLast } = props;
-    const url = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
+  const RenderImage = useCallback(
+    ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {
+      const { type, original: resource, resourceUrl, resourceId } = dataSource;
+      const url = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
 
-    const layoutClass = {
-      landscape: "col-span-2 aspect-[4/3]",
-      portrait: "col-span-2 aspect-[3/4]",
-      square: "col-span-2 aspect-square",
-    };
+      const layoutClass = {
+        landscape: "col-span-2 aspect-[4/3]",
+        portrait: "col-span-2 aspect-[3/4]",
+        square: "col-span-2 aspect-square",
+      };
 
-    return (
-      <LazyImage src={url} id={resourceId} alt={props.alt} filename={props.filename}>
-        {({ containerRef, content, containerProps, dimensions }) => {
-          return (
-            <div
-              ref={containerRef}
-              {...containerProps}
-              data-resource={resourceId}
-              data-type={type}
-              className={cn(
-                containerProps.className,
-                len === 1 && layoutClass[dimensions?.orientation || "square"],
-                len > 1 && "aspect-square",
-                extraClassMap[len]?.child,
-              )}
-              onClick={() => handleThumbnailClick(index)}
-            >
-              {content}
-              {isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
-            </div>
-          );
-        }}
-      </LazyImage>
-    );
-  };
+      return (
+        <LazyImage src={url} id={resourceId} alt={dataSource.alt} filename={dataSource.filename}>
+          {({ containerRef, content, containerProps, dimensions }) => {
+            return (
+              <div
+                ref={containerRef}
+                {...containerProps}
+                data-resource={resourceId}
+                data-type={type}
+                className={cn(
+                  containerProps.className,
+                  len === 1 && layoutClass[dimensions?.orientation || "square"],
+                  len > 1 && "aspect-square",
+                  extraClassMap[len]?.child,
+                )}
+                onClick={() => handleThumbnailClick(index)}
+              >
+                {content}
+                {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
+              </div>
+            );
+          }}
+        </LazyImage>
+      );
+    },
+    [handleThumbnailClick],
+  );
 
   /**
-   * 渲染视频
+   * 渲染视频 - 使用 useCallback 避免重复创建
    */
-  const RenderVideo = (props: RenderMediaProps) => {
-    const { type, resourceUrl, resourceId, index, len, remainingCount, isLast } = props;
+  const RenderVideo = useCallback(
+    ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {
+      const { type, resourceUrl, resourceId } = dataSource;
 
-    const layoutClass = {
-      landscape: "col-span-3 aspect-video",
-      portrait: "col-span-2 aspect-[3/4] [&_video]:object-cover [&_img.poster]:object-cover",
-      square: "col-span-3 aspect-video",
-    };
+      const layoutClass = {
+        landscape: "col-span-3 aspect-video",
+        portrait: "col-span-2 aspect-[3/4] [&_video]:object-cover [&_img.poster]:object-cover",
+        square: "col-span-3 aspect-video",
+      };
 
-    return (
-      <LazyVideo src={resourceUrl} id={resourceId}>
-        {({ containerRef, content, containerProps, dimensions }) => {
-          return (
-            <div
-              ref={containerRef}
-              {...containerProps}
-              data-resource={resourceId}
-              data-type={type}
-              className={cn(
-                containerProps.className,
-                len === 1 && (sm ? "col-span-3 aspect-video" : layoutClass[dimensions?.orientation || "square"]),
-                len > 1 && "aspect-square [&_video]:object-cover [&_img.poster]:object-cover",
-                extraClassMap[len]?.child,
-              )}
-              onClick={() => handleThumbnailClick(index)}
-            >
-              {content}
-              {isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
-            </div>
-          );
-        }}
-      </LazyVideo>
-    );
-  };
-
-  const GalleryItemWrapper = ({ dataSource, index }: { dataSource: DataSource; index: number }) => {
-    const renderProps = {
-      type: dataSource.type!,
-      resource: dataSource.original,
-      resourceUrl: dataSource.resourceUrl,
-      resourceId: dataSource.resourceId,
-      index,
-      len: dataSources.length,
-      remainingCount,
-      isLast: dataSource.isLast,
-      alt: dataSource.alt,
-      filename: dataSource.filename,
-    };
-
-    if (!dataSource.type) return null;
-
-    if (dataSource.type === "image") {
-      return <RenderImage {...renderProps} />;
-    }
-
-    if (dataSource?.type === "video") {
-      return <RenderVideo {...renderProps} />;
-    }
-
-    return null;
-  };
+      return (
+        <LazyVideo
+          src={resourceUrl}
+          id={resourceId}
+          onLoad={(state) => {
+            if (!dataSource.msrc && state.dimensions?.thumbnail) {
+              dataSource.msrc = state.dimensions?.thumbnail;
+            }
+          }}
+        >
+          {({ containerRef, content, containerProps, dimensions }) => {
+            return (
+              <div
+                ref={containerRef}
+                {...containerProps}
+                data-resource={resourceId}
+                data-type={type}
+                className={cn(
+                  containerProps.className,
+                  len === 1 && (sm ? "col-span-3 aspect-video" : layoutClass[dimensions?.orientation || "square"]),
+                  len > 1 && "aspect-square [&_video]:object-cover [&_img.poster]:object-cover",
+                  extraClassMap[len]?.child,
+                )}
+                onClick={() => handleThumbnailClick(index)}
+              >
+                {content}
+                {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
+              </div>
+            );
+          }}
+        </LazyVideo>
+      );
+    },
+    [handleThumbnailClick, sm],
+  );
 
   return (
     <div ref={galleryRef} id={memoId} className="w-full">
@@ -428,7 +411,18 @@ const MemoGridView = ({ resources }: GridViewProps) => {
         )}
       >
         {dataSources.slice(0, displayCount).map((dataSource, index) => {
-          return <GalleryItemWrapper key={index} dataSource={dataSource} index={index} />;
+          if (dataSource.type === "image") {
+            return (
+              <RenderImage key={dataSource.resourceId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
+            );
+          }
+          if (dataSource?.type === "video") {
+            return (
+              <RenderVideo key={dataSource.resourceId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
+            );
+          }
+
+          return null;
         })}
       </div>
     </div>

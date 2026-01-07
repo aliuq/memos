@@ -1,15 +1,3 @@
-import { Resource } from "@/types/proto/api/v1/resource_service";
-import { getResourceUrl } from "@/utils/resource";
-
-/**
- * Generate a thumbnail image URL for the given resource.
- */
-export function generateImageUrl(resource: Resource | string): string {
-  const url = typeof resource === "string" ? resource : getResourceUrl(resource);
-  const rawUrl = url.replace(/\?/g, "%3F").replace(/&/g, "%26");
-  return `http://192.168.2.121:8089?url=${rawUrl}&w=200&fit=cover`;
-}
-
 // 响应式显示相关类型
 export interface ResponsiveShowOptions {
   /** 最大宽度：视口宽度的95% */

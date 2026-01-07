@@ -4,7 +4,51 @@
 import { useState, useEffect, useCallback } from "react";
 import { ImageResolution, Orientation, VideoResolution, ResourceResolution } from "../types";
 
+// LRU 缓存策略：最大缓存 100 个项目，避免内存无限增长
+const MAX_CACHE_SIZE = 100;
 const mediaResolutionCache = new Map<string, ResourceResolution>();
+const cacheAccessOrder: string[] = []; // 记录访问顺序用于 LRU
+
+/**
+ * 添加到缓存，并应用 LRU 策略
+ */
+function addToCache(key: string, value: ResourceResolution) {
+  // 如果已存在，先移除旧的访问记录
+  if (mediaResolutionCache.has(key)) {
+    const index = cacheAccessOrder.indexOf(key);
+    if (index > -1) {
+      cacheAccessOrder.splice(index, 1);
+    }
+  }
+
+  // 添加新项
+  mediaResolutionCache.set(key, value);
+  cacheAccessOrder.push(key);
+
+  // 如果超过最大缓存大小，移除最久未使用的项
+  if (mediaResolutionCache.size > MAX_CACHE_SIZE) {
+    const oldestKey = cacheAccessOrder.shift();
+    if (oldestKey) {
+      mediaResolutionCache.delete(oldestKey);
+    }
+  }
+}
+
+/**
+ * 从缓存获取，并更新访问顺序
+ */
+function getFromCache(key: string): ResourceResolution | undefined {
+  const value = mediaResolutionCache.get(key);
+  if (value) {
+    // 更新访问顺序：移到最后
+    const index = cacheAccessOrder.indexOf(key);
+    if (index > -1) {
+      cacheAccessOrder.splice(index, 1);
+      cacheAccessOrder.push(key);
+    }
+  }
+  return value;
+}
 
 interface UseMediaResolutionOptions {
   /**
@@ -66,14 +110,14 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
 
   const [resolution, setResolution] = useState<ResourceResolution | null>(() => {
     // 尝试从缓存中获取
-    return mediaResolutionCache.get(cacheKey) || null;
+    return getFromCache(cacheKey) || null;
   });
   const [loading, setLoading] = useState<boolean>(!mediaResolutionCache.has(cacheKey));
   const [error, setError] = useState<Error | null>(null);
 
   const fetchResolution = useCallback(async () => {
     // 如果已有缓存，直接返回
-    const cached = mediaResolutionCache.get(cacheKey);
+    const cached = getFromCache(cacheKey);
     if (cached) {
       setResolution(cached);
       setLoading(false);
@@ -97,7 +141,7 @@ export function useMediaResolution(src: string, options: UseMediaResolutionOptio
       }
 
       // 缓存结果
-      mediaResolutionCache.set(cacheKey, result);
+      addToCache(cacheKey, result);
       setResolution(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
@@ -126,6 +170,121 @@ export function getOrientation(width: number, height: number): Orientation {
   if (width > height) return Orientation.LANDSCAPE;
   if (width < height) return Orientation.PORTRAIT;
   return Orientation.SQUARE;
+}
+
+/**
+ * 从已加载的图片元素计算分辨率信息
+ * @param img - 已加载的图片元素
+ * @returns 图片分辨率信息
+ */
+export function calculateImageResolution(img: HTMLImageElement): Omit<ImageResolution, "type"> {
+  const width = img.naturalWidth;
+  const height = img.naturalHeight;
+  const displayHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+  const displayWidth = Math.floor((width / height) * displayHeight);
+
+  return { width, height, orientation: getOrientation(width, height), displayWidth, displayHeight };
+}
+
+/**
+ * 从已加载的视频元素计算分辨率信息
+ * @param video - 已加载的视频元素
+ * @returns 视频分辨率信息
+ */
+export function calculateVideoResolution(video: HTMLVideoElement): Omit<VideoResolution, "type"> {
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  const orientation = getOrientation(width, height);
+
+  return { width, height, orientation };
+}
+
+/**
+ * 从视频元素生成缩略图
+ * @param video - 视频元素
+ * @param seekTime - 捕获缩略图的时间点（秒），如果为 null 则使用当前时间
+ * @param quality - JPEG 质量，默认 0.8
+ * @returns Promise，包含缩略图的 base64 数据
+ */
+export function generateVideoThumbnail(video: HTMLVideoElement, seekTime: number | null = null, quality: number = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    // 验证视频尺寸有效性
+    if (width <= 0 || height <= 0) {
+      reject(new Error("Invalid video dimensions"));
+      return;
+    }
+
+    let hasSeeked = false;
+
+    /**
+     * 捕获当前帧作为缩略图
+     */
+    const captureFrame = () => {
+      if (hasSeeked) return;
+      hasSeeked = true;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+
+      try {
+        // 将视频帧绘制到 canvas
+        ctx.drawImage(video, 0, 0, width, height);
+
+        // 转换为 base64 JPEG 格式
+        const thumbnail = canvas.toDataURL("image/jpeg", quality);
+        resolve(thumbnail);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    // 如果不需要 seek，直接捕获当前帧
+    if (isNil(seekTime)) {
+      // 确保视频准备好
+      if (video.readyState >= 2) {
+        captureFrame();
+      } else {
+        video.onloadeddata = captureFrame;
+      }
+      return;
+    }
+
+    // 需要 seek 到指定时间点
+    const videoDuration = video.duration || 0;
+    if (!isFinite(videoDuration) || videoDuration <= 0) {
+      reject(new Error("Invalid video duration"));
+      return;
+    }
+
+    const targetTime = Math.min(Math.max(seekTime!, 0), videoDuration);
+
+    // 监听 seeked 事件
+    video.onseeked = captureFrame;
+
+    // 监听 canplay 事件作为备用
+    video.oncanplay = () => {
+      if (!hasSeeked) {
+        captureFrame();
+      }
+    };
+
+    // 设置视频播放位置到目标时间点
+    try {
+      video.currentTime = targetTime;
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -181,13 +340,8 @@ export function getImageResolution(src: string, timeout = 5000): Promise<Omit<Im
     }, timeout);
 
     img.onload = () => {
-      const width = img.naturalWidth;
-      const height = img.naturalHeight;
-      // TODO：根据 ratio 计算更为合理的 displayWidth 和 displayHeight
-      const displayHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-      const displayWidth = Math.floor((width / height) * displayHeight);
-
-      resolveOnce({ width, height, orientation: getOrientation(width, height), displayWidth, displayHeight });
+      const resolution = calculateImageResolution(img);
+      resolveOnce(resolution);
     };
 
     img.onerror = (event) => {
@@ -338,9 +492,7 @@ export function getVideoResolution(
 
     // 元数据加载完成
     video.onloadedmetadata = () => {
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      const orientation = getOrientation(width, height);
+      const { width, height, orientation } = calculateVideoResolution(video);
 
       // 验证视频尺寸有效性
       if (width <= 0 || height <= 0) {

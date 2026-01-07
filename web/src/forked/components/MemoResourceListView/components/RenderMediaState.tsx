@@ -1,3 +1,4 @@
+import upperFirst from "lodash-es/upperFirst";
 import { cn } from "@/utils";
 
 export function RenderMediaState({
@@ -21,7 +22,7 @@ export function RenderMediaState({
         )}
       >
         {IconComponent && <IconComponent />}
-        {text && <p>{text}</p>}
+        {text && <p>{upperFirst(text)}</p>}
         {children}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { memo, useRef, useEffect, useCallback, ReactNode, useReducer, useMemo } 
 import { cn } from "@/utils";
 import { useIntersectionObserver, useMediaResolution } from "../hooks";
 import { Orientation, VideoResolution } from "../types";
+import { renderSlot } from "../utils";
 import RenderMediaState from "./RenderMediaState";
 import ControlsContainer from "./player/ControlsContainer";
 import PlayerContainer from "./player/PlayerContainer";
@@ -70,13 +71,13 @@ interface LazyVideoProps {
   /** 状态插槽 - 自定义各个状态的渲染内容 */
   slots?: {
     /** 闲置状态插槽 */
-    idle?: ReactNode;
+    idle?: ReactNode | ((state: VideoState) => ReactNode);
     /** 加载中插槽 */
-    loading?: ReactNode;
+    loading?: ReactNode | ((state: VideoState) => ReactNode);
     /** 错误状态插槽 */
-    error?: ReactNode;
+    error?: ReactNode | ((state: VideoState) => ReactNode);
     /** 加载完成插槽（可用于添加遮罩层等） */
-    loaded?: ReactNode;
+    loaded?: ReactNode | ((state: VideoState) => ReactNode);
   };
 
   /** IntersectionObserver 的 rootMargin，默认 "100px" */
@@ -314,31 +315,33 @@ export const LazyVideo = memo(function LazyVideo({
     }
   }, [state.dimensions, onDimensionsLoad]);
 
-  // ========== 渲染函数 ==========
-  // 渲染不同状态的视觉反馈（支持通过 slots 自定义）
-  const renderIdleState = () =>
-    slots.idle || (
-      <RenderMediaState>
-        <Video />
-        <p>{state.status}</p>
-      </RenderMediaState>
-    );
+  /** Idle slot and Loading slot */
+  const renderLoadingState = (isIdle = false) => {
+    const slot = isIdle ? slots.idle : slots.loading;
+    if (slot) {
+      return renderSlot(slot, state);
+    }
 
-  const renderLoadingState = () =>
-    slots.loading || (
-      <RenderMediaState className="animate-pulse">
-        <Video />
-        <p>{state.status}</p>
-      </RenderMediaState>
-    );
+    return <RenderMediaState className={isIdle ? "" : "animate-pulse"} IconComponent={Video} text={state.status} />;
+  };
 
-  const renderErrorState = () =>
-    slots.error || (
-      <RenderMediaState>
-        <TriangleAlert />
-        <p>{state.status}</p>
-      </RenderMediaState>
-    );
+  /** Error slot */
+  const renderErrorState = () => {
+    if (slots.error) {
+      return renderSlot(slots.error, state);
+    }
+
+    return <RenderMediaState IconComponent={TriangleAlert} text={state.status} />;
+  };
+
+  /** Loaded slot */
+  const renderLoadedState = () => {
+    if (slots.loaded) {
+      return renderSlot(slots.loaded, state);
+    }
+
+    return null;
+  };
 
   const placeholderSrc = poster || (state.dimensions ? state.dimensions.thumbnail : undefined);
 
@@ -402,15 +405,15 @@ export const LazyVideo = memo(function LazyVideo({
       )}
 
       {/* 状态层渲染 - 显示当前加载状态 */}
-      {state.status === VideoStatus.IDLE && renderIdleState()}
-      {state.status === VideoStatus.LOADING && renderLoadingState()}
+      {state.status === VideoStatus.IDLE && renderLoadingState(true)}
+      {state.status === VideoStatus.LOADING && renderLoadingState(false)}
       {state.status === VideoStatus.ERROR && renderErrorState()}
 
       {/* 视频元素 */}
       {renderVideoContent()}
 
       {/* 加载完成后的插槽（例如遮罩层） */}
-      {state.status === VideoStatus.LOADED && slots.loaded}
+      {state.status === VideoStatus.LOADED && renderLoadedState()}
     </>
   );
 

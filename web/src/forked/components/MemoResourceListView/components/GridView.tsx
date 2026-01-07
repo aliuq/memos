@@ -152,6 +152,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       pswpModule: photoswipe,
       zoom: false,
       close: sm,
+      secondaryZoomLevel: 4,
     });
 
     // Add filename display
@@ -300,7 +301,9 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   const handleThumbnailClick = useCallback((index: number) => {
     if (lightboxRef.current) {
       pauseVideos();
-      lightboxRef.current.loadAndOpen(index);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => lightboxRef.current?.loadAndOpen(index));
+      });
     }
   }, []);
 

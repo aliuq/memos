@@ -23,7 +23,7 @@ const MemoResourceListView = ({ resources = [] }: { resources: Resource[] }) => 
 
     return (
       <div className="w-full flex flex-row justify-start overflow-auto gap-2">
-        {otherResources.map((resource) => (
+        {resources.map((resource) => (
           <MemoResource key={resource.name} resource={resource} />
         ))}
       </div>

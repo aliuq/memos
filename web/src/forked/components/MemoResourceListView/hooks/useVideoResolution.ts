@@ -254,7 +254,6 @@ export function setupVideoInteractionHandler(options: SetupVideoInteractionOptio
   interactionListenerSetup = true;
 
   function handleInteraction() {
-    console.log("User interaction detected, attempting to play pending videos...");
     const videos = document.querySelectorAll(`video[${key}]`);
     videos.forEach((v) => {
       const videoEl = v as HTMLVideoElement;

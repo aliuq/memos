@@ -298,6 +298,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   }, [dataSources]);
 
   // Open lightbox when thumbnail is clicked
+  // Use onPointerUp to avoid the first tap on iOS not being recognized
   const handleThumbnailClick = useCallback((index: number) => {
     if (lightboxRef.current) {
       pauseVideos();
@@ -336,7 +337,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
                   len > 1 && "aspect-square",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => handleThumbnailClick(index)}
+                onClick={() => (sm ? handleThumbnailClick(index) : undefined)}
+                onPointerUp={() => (!sm ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
@@ -385,7 +387,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
                   len > 1 && "aspect-square [&_video]:object-cover [&_img.poster]:object-cover",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => handleThumbnailClick(index)}
+                onClick={() => (sm ? handleThumbnailClick(index) : undefined)}
+                onPointerUp={() => (!sm ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}

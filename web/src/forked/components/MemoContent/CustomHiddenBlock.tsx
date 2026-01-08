@@ -25,7 +25,7 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
   const computedClassName = useMemo(
     () =>
       cn(
-        "block rounded-md overflow-hidden px-3 py-4 my-0.5 cursor-default transition-all duration-300 ease-in-out",
+        "block rounded-md overflow-hidden px-2 sm:px-3 py-3 sm:py-4 my-0.5 cursor-default transition-all duration-300 ease-in-out",
         "border border-warning/30 dark:border-warning/20 bg-warning/5 dark:bg-warning/10",
         className,
       ),

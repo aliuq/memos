@@ -152,7 +152,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       pswpModule: photoswipe,
       zoom: false,
       close: sm,
-      secondaryZoomLevel: 4,
+      secondaryZoomLevel: 2.5,
     });
 
     // Add filename display

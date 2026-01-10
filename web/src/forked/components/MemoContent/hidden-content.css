@@ -1,0 +1,17 @@
+@reference "tailwindcss";
+
+:root {
+  --hidden-bg: theme("colors.yellow.500/5%");
+  --hidden-border: theme("colors.yellow.500/30%");
+  --hidden-border-hover: theme("colors.yellow.500/30%");
+  --hidden-foreground: theme("colors.yellow.500");
+  --hidden-foreground-2: theme("colors.yellow.500/70%");
+}
+
+.dark {
+  --hidden-bg: theme("colors.yellow.500/10%");
+  --hidden-border: theme("colors.yellow.500/20%");
+  --hidden-border-hover: theme("colors.yellow.500/40%");
+  --hidden-foreground: theme("colors.yellow.500/80%");
+  --hidden-foreground-2: theme("colors.yellow.500/60%");
+}

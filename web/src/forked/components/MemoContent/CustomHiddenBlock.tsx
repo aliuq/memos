@@ -3,6 +3,7 @@ import Renderer from "@/components/MemoContent/Renderer";
 import { BaseProps } from "@/components/MemoContent/types";
 import { cn } from "@/lib/utils";
 import { Node } from "@/types/proto/api/v1/markdown_service";
+import "./hidden-content.css";
 
 interface Props extends BaseProps {
   children: Node[];
@@ -25,8 +26,10 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
   const computedClassName = useMemo(
     () =>
       cn(
-        "block rounded-md overflow-hidden px-2 sm:px-3 py-3 sm:py-4 my-0.5 cursor-default transition-all duration-300 ease-in-out",
-        "border border-warning/30 dark:border-warning/20 bg-warning/5 dark:bg-warning/10",
+        "block rounded-md overflow-hidden border cursor-default",
+        "transition-all duration-300 ease-in-out transform-gpu",
+        "px-2 sm:px-3 py-3 sm:py-4 my-0.5",
+        "border-(--hidden-border) bg-(--hidden-bg) text-(--hidden-foreground)",
         className,
       ),
     [className],
@@ -45,17 +48,13 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
   const placeholderContent = useMemo(
     () => (
       <span className="flex items-start gap-3">
-        <span
-          role="img"
-          aria-label="hidden"
-          className="text-2xl flex-shrink-0 text-warning-dark/70 dark:text-warning/90 transition-transform duration-300"
-        >
+        <span role="img" aria-label="hidden" className="text-2xl shrink-0 transition-transform duration-300">
           {show ? "🔓" : "🔒"}
         </span>
 
         <span className="flex flex-col gap-1 flex-1">
-          <span className="text-lg font-medium tracking-tight text-warning dark:text-warning/70">{defaultPlaceholder}</span>
-          <span className="text-sm leading-relaxed text-warning/70 dark:text-warning/60">{defaultDescription}</span>
+          <span className="text-lg font-medium tracking-tight">{defaultPlaceholder}</span>
+          <span className="text-sm leading-relaxed text-(--hidden-foreground-2)">{defaultDescription}</span>
         </span>
       </span>
     ),

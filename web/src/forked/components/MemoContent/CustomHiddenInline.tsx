@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { BaseProps } from "@/components/MemoContent/types";
 import { cn } from "@/lib/utils";
+import "./hidden-content.css";
 
 interface Props extends BaseProps {
   content?: string;
@@ -23,11 +24,11 @@ const CustomHiddenInline: React.FC<Props> = ({ content = "", placeholder = "", c
   const computedClassName = useMemo(
     () =>
       cn(
-        "inline-flex items-center gap-[5px] px-1 sm:px-2 py-0.5 my-0.5 align-baseline text-xs sm:text-sm rounded-md",
+        "inline-flex items-center border rounded-md align-baseline text-xs sm:text-sm ",
+        "gap-1.25 px-1 sm:px-2 py-0.5 my-0.5",
         "cursor-default transition-all duration-300 ease-in-out transform-gpu",
-        "border border-warning/30 dark:border-warning/20 bg-warning/5 dark:bg-warning/10",
-        "text-warning-dark dark:text-warning/90",
-        hasContent ? "dark:hover:border-warning/40" : "",
+        "bg-(--hidden-bg) border-(--hidden-border) text-(--hidden-foreground)",
+        hasContent && "dark:hover:border-(--hidden-border-hover)",
         className,
       ),
     [hasContent, className],
@@ -38,7 +39,7 @@ const CustomHiddenInline: React.FC<Props> = ({ content = "", placeholder = "", c
       <span role="img" aria-label="hidden" className="select-none">
         {show ? "🔓" : "🔒"}
       </span>
-      <span className="font-medium -ml-[2px]">{show ? fmtContent : defaultText}</span>
+      <span className="font-medium -ml-0.5">{show ? fmtContent : defaultText}</span>
     </span>
   );
 };

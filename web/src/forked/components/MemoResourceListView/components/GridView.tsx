@@ -152,7 +152,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       pswpModule: photoswipe,
       zoom: false,
       close: sm,
-      secondaryZoomLevel: 4,
+      secondaryZoomLevel: 2.5,
     });
 
     // Add filename display
@@ -324,7 +324,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
 
       return (
         <LazyImage src={url} id={resourceId} alt={dataSource.alt} filename={dataSource.filename}>
-          {({ containerRef, content, containerProps, dimensions }) => {
+          {({ containerRef, content, containerProps, dimensions, status }) => {
             return (
               <div
                 ref={containerRef}
@@ -337,8 +337,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
                   len > 1 && "aspect-square",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => (sm ? handleThumbnailClick(index) : undefined)}
-                onPointerUp={() => (!sm ? handleThumbnailClick(index) : undefined)}
+                onClick={() => (sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
+                onPointerUp={() => (!sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
@@ -374,7 +374,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
             }
           }}
         >
-          {({ containerRef, content, containerProps, dimensions }) => {
+          {({ containerRef, content, containerProps, dimensions, status }) => {
             return (
               <div
                 ref={containerRef}
@@ -387,8 +387,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
                   len > 1 && "aspect-square [&_video]:object-cover [&_img.poster]:object-cover",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => (sm ? handleThumbnailClick(index) : undefined)}
-                onPointerUp={() => (!sm ? handleThumbnailClick(index) : undefined)}
+                onClick={() => (sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
+                onPointerUp={() => (!sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}

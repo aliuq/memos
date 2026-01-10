@@ -141,7 +141,9 @@ const Player = ({ src, autoPlay = false, loop = false, preload = "auto", poster,
         loop={loop}
         crossOrigin={crossOrigin}
       ></video>
-      <MediaPosterImage slot="poster" src={poster} style={{ width: "100%", height: "100%", aspectRatio: "16/9", objectFit: "contain" }} />
+      {poster && (
+        <MediaPosterImage slot="poster" src={poster} style={{ width: "100%", height: "100%", aspectRatio: "16/9", objectFit: "contain" }} />
+      )}
       <MediaErrorDialog role="dialog" slot="dialog"></MediaErrorDialog>
       <MediaLoadingIndicator
         noAutohide

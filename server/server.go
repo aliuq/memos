@@ -93,8 +93,15 @@ func NewServer(ctx context.Context, profile *profile.Profile, store *store.Store
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	address := fmt.Sprintf("%s:%d", s.Profile.Addr, s.Profile.Port)
-	listener, err := net.Listen("tcp", address)
+	var address, network string
+	if len(s.Profile.UNIXSock) == 0 {
+		address = fmt.Sprintf("%s:%d", s.Profile.Addr, s.Profile.Port)
+		network = "tcp"
+	} else {
+		address = s.Profile.UNIXSock
+		network = "unix"
+	}
+	listener, err := net.Listen(network, address)
 	if err != nil {
 		return errors.Wrap(err, "failed to listen")
 	}
@@ -131,6 +138,9 @@ func (s *Server) Shutdown(ctx context.Context) {
 	if err := s.echoServer.Shutdown(ctx); err != nil {
 		slog.Error("failed to shutdown server", slog.String("error", err.Error()))
 	}
+
+	// Shutdown gRPC server.
+	s.grpcServer.GracefulStop()
 
 	// Close database connection.
 	if err := s.Store.Close(); err != nil {

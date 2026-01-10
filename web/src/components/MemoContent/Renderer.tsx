@@ -83,7 +83,7 @@ const Renderer: React.FC<Props> = ({ index, node }: Props) => {
 
   switch (node.type) {
     case NodeType.LINE_BREAK:
-      return <LineBreak index={index} />;
+      return <LineBreak />;
     case NodeType.PARAGRAPH:
       return <Paragraph index={index} {...(node.paragraphNode as ParagraphNode)} />;
     case NodeType.CODE_BLOCK:

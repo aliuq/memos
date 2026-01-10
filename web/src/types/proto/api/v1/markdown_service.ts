@@ -238,36 +238,46 @@ export function nodeTypeToNumber(object: NodeType): number {
 }
 
 export interface ParseMarkdownRequest {
+  /** The markdown content to parse. */
   markdown: string;
 }
 
 export interface ParseMarkdownResponse {
+  /** The parsed markdown nodes. */
   nodes: Node[];
 }
 
 export interface RestoreMarkdownNodesRequest {
+  /** The nodes to restore to markdown content. */
   nodes: Node[];
 }
 
 export interface RestoreMarkdownNodesResponse {
+  /** The restored markdown content. */
   markdown: string;
 }
 
 export interface StringifyMarkdownNodesRequest {
+  /** The nodes to stringify to plain text. */
   nodes: Node[];
 }
 
 export interface StringifyMarkdownNodesResponse {
+  /** The plain text content. */
   plainText: string;
 }
 
 export interface GetLinkMetadataRequest {
+  /** The link URL to get metadata for. */
   link: string;
 }
 
 export interface LinkMetadata {
+  /** The title of the linked page. */
   title: string;
+  /** The description of the linked page. */
   description: string;
+  /** The URL of the preview image for the linked page. */
   image: string;
 }
 
@@ -425,7 +435,9 @@ export interface TableNode_Row {
 }
 
 export interface EmbeddedContentNode {
+  /** The resource name of the embedded content. */
   resourceName: string;
+  /** Additional parameters for the embedded content. */
   params: string;
 }
 
@@ -496,7 +508,9 @@ export interface SuperscriptNode {
 }
 
 export interface ReferencedContentNode {
+  /** The resource name of the referenced content. */
   resourceName: string;
+  /** Additional parameters for the referenced content. */
   params: string;
 }
 
@@ -3430,7 +3444,10 @@ export const MarkdownServiceDefinition = {
   name: "MarkdownService",
   fullName: "memos.api.v1.MarkdownService",
   methods: {
-    /** ParseMarkdown parses the given markdown content and returns a list of nodes. */
+    /**
+     * ParseMarkdown parses the given markdown content and returns a list of nodes.
+     * This is a utility method that transforms markdown text into structured nodes.
+     */
     parseMarkdown: {
       name: "ParseMarkdown",
       requestType: ParseMarkdownRequest,
@@ -3474,7 +3491,10 @@ export const MarkdownServiceDefinition = {
         },
       },
     },
-    /** RestoreMarkdownNodes restores the given nodes to markdown content. */
+    /**
+     * RestoreMarkdownNodes restores the given nodes to markdown content.
+     * This is the inverse operation of ParseMarkdown.
+     */
     restoreMarkdownNodes: {
       name: "RestoreMarkdownNodes",
       requestType: RestoreMarkdownNodesRequest,
@@ -3485,12 +3505,12 @@ export const MarkdownServiceDefinition = {
         _unknownFields: {
           578365826: [
             new Uint8Array([
-              34,
+              29,
               58,
               1,
               42,
               34,
-              29,
+              24,
               47,
               97,
               112,
@@ -3507,11 +3527,6 @@ export const MarkdownServiceDefinition = {
               111,
               119,
               110,
-              47,
-              110,
-              111,
-              100,
-              101,
               58,
               114,
               101,
@@ -3525,7 +3540,10 @@ export const MarkdownServiceDefinition = {
         },
       },
     },
-    /** StringifyMarkdownNodes stringify the given nodes to plain text content. */
+    /**
+     * StringifyMarkdownNodes stringify the given nodes to plain text content.
+     * This removes all markdown formatting and returns plain text.
+     */
     stringifyMarkdownNodes: {
       name: "StringifyMarkdownNodes",
       requestType: StringifyMarkdownNodesRequest,
@@ -3536,12 +3554,12 @@ export const MarkdownServiceDefinition = {
         _unknownFields: {
           578365826: [
             new Uint8Array([
-              36,
+              31,
               58,
               1,
               42,
               34,
-              31,
+              26,
               47,
               97,
               112,
@@ -3558,11 +3576,6 @@ export const MarkdownServiceDefinition = {
               111,
               119,
               110,
-              47,
-              110,
-              111,
-              100,
-              101,
               58,
               115,
               116,
@@ -3578,7 +3591,10 @@ export const MarkdownServiceDefinition = {
         },
       },
     },
-    /** GetLinkMetadata returns metadata for a given link. */
+    /**
+     * GetLinkMetadata returns metadata for a given link.
+     * This is useful for generating link previews.
+     */
     getLinkMetadata: {
       name: "GetLinkMetadata",
       requestType: GetLinkMetadataRequest,
@@ -3589,9 +3605,9 @@ export const MarkdownServiceDefinition = {
         _unknownFields: {
           578365826: [
             new Uint8Array([
-              32,
+              36,
               18,
-              30,
+              34,
               47,
               97,
               112,
@@ -3613,8 +3629,12 @@ export const MarkdownServiceDefinition = {
               105,
               110,
               107,
+              115,
               58,
-              109,
+              103,
+              101,
+              116,
+              77,
               101,
               116,
               97,

@@ -1,4 +1,4 @@
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 export type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   name?: string;

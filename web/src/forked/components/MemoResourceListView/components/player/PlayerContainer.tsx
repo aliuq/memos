@@ -1,5 +1,5 @@
 import { useMediaFullscreenRef } from "media-chrome/dist/react/media-store";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 interface PlayerContainerProps {
   children: React.ReactNode;

@@ -1,8 +1,8 @@
 import photoswipe, { SlideData } from "photoswipe";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import { memo, useMemo, useEffect, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { Resource } from "@/types/proto/api/v1/resource_service";
-import { cn } from "@/utils";
 import { getResourceType, getResourceUrl, isImage } from "@/utils/resource";
 import { getImageResolution, useMediaQuery } from "../hooks";
 import "../photoswipe.css";

@@ -1,7 +1,7 @@
 import { TriangleAlert, Video } from "lucide-react";
 import { MediaProvider } from "media-chrome/dist/react/media-store";
 import React, { memo, useEffect, useCallback, ReactNode, useReducer, useMemo } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 import { useIntersectionObserver, setupVideoInteractionHandler, calculateVideoResolution, generateVideoThumbnail } from "../hooks";
 import { Orientation, VideoResolution } from "../types";
 import { renderSlot } from "../utils";

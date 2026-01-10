@@ -1,6 +1,6 @@
 import { Pause, Play } from "lucide-react";
 import { useMediaDispatch, useMediaSelector, MediaActionTypes } from "media-chrome/dist/react/media-store";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 import IconButton, { IconButtonProps } from "./IconButton";
 
 const PlayBigButton = ({ className, center = false, ...rest }: Omit<IconButtonProps, "label"> & { center?: boolean }) => {

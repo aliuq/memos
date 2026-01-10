@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from "react";
 import Renderer from "@/components/MemoContent/Renderer";
 import { BaseProps } from "@/components/MemoContent/types";
+import { cn } from "@/lib/utils";
 import { Node } from "@/types/proto/api/v1/markdown_service";
-import { cn } from "@/utils";
 
 interface Props extends BaseProps {
   children: Node[];

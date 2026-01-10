@@ -1,6 +1,6 @@
 import { useMediaDispatch, useMediaSelector, MediaActionTypes, timeUtils } from "media-chrome/dist/react/media-store";
 import { useState, useRef, useEffect, useCallback, CSSProperties } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 interface SeekbarProps {
   disabled?: boolean;

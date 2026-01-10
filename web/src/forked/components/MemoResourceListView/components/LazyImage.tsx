@@ -1,6 +1,6 @@
 import { Image, TriangleAlert } from "lucide-react";
 import { memo, useRef, useEffect, useCallback, ReactNode, useReducer } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 import { useIntersectionObserver, calculateImageResolution } from "../hooks";
 import { ImageResolution } from "../types";
 import { renderSlot } from "../utils";

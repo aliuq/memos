@@ -1,6 +1,6 @@
 import { useMediaRef, useMediaSelector } from "media-chrome/dist/react/media-store";
 import React, { createElement, DetailedHTMLProps, ElementType, VideoHTMLAttributes } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 type VideoProps = DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>;
 

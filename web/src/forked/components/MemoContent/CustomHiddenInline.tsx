@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { BaseProps } from "@/components/MemoContent/types";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 interface Props extends BaseProps {
   content?: string;

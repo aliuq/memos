@@ -1,5 +1,5 @@
 import upperFirst from "lodash-es/upperFirst";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 export function RenderMediaState({
   className,

@@ -38,6 +38,21 @@ jobs:
             core.setOutput('version', version);
             core.setOutput('readmeExist', fs.existsSync('NOTE.md'));
 
+      # Frontend build.
+      - uses: pnpm/action-setup@v4.1.0
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: "web/pnpm-lock.yaml"
+      - run: pnpm install
+        working-directory: web
+      - name: Run frontend build
+        run: pnpm release
+        working-directory: web
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -76,6 +91,7 @@ jobs:
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
+          file: ./scripts/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -83,6 +99,8 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
       - name: Push README
         if: ${{ fromJson(steps.vars.outputs.readmeExist) && inputs.push }}

@@ -759,18 +759,14 @@ func substring(s string, length int) string {
 	return s[:byteIndex]
 }
 
-// 处理隐藏内容的辅助函数
-// 规则:
-// 1. 行内隐藏内容 :::hide hidden content:::
-// `[hide-inline]`
-// 2. 行内隐藏内容,带属性 :::hide{foo=foo;bar=bar} hidden content:::
-// `[hide-inline{foo:foo,bar:bar}]`
-// 3. 块级隐藏内容
-// :::hide{foo=foo;bar=bar}
-// hidden content
-// hidden content
-// :::
-// `[hide-block{foo:foo,bar:bar}]`
+// Process hidden content in the memo content.
+// Rules:
+//  1. inline, :::hide hidden content::: => `[hide-inline]`.
+//  2. inline with attributes, :::hide{foo=foo;bar=bar} hidden content::: => `[hide-inline{foo:foo,bar:bar}]`.
+//  3. block, :::hide{foo=foo;bar=bar}
+//     hidden content
+//     hidden content
+//     ::: => `[hide-block{foo:foo,bar:bar}]`.
 func processHiddenContent(content string) string {
 	// Match block hidden content with optional attributes
 	blockRe := regexp.MustCompile(`(?s):::hide(?:\{([^}]*)\})?\n(.*?)\n:::`)
@@ -817,59 +813,8 @@ func processHiddenContent(content string) string {
 	return processedContent
 }
 
-// 判断隐藏内容是否包含关键字
-// 1 hasKeyInHidden("This is :::hide hidden content:::", ["hidden"])
-// true
-// 2 hasKeyInHidden("This is :::hide{foo=foo} hidden content:::", ["hidden"])
-// true
-// 3 hasKeyInHidden("This is :::hide hidden content:::", ["visible"])
-// false
-// 4 hasKeyInHidden("This is :::hide
-// hidden content
-// :::", ["hidden"])
-// true
-// 5 hasKeyInHidden("This is :::hide{foo=foo}
-// hidden content
-// :::", ["hidden"])
-// true
-func hasKeyInHidden(content string, keywords []string) bool {
-	// Match block hidden content with optional attributes
-	blockRe := regexp.MustCompile(`(?s):::hide(?:\{[^}]*\})?\n(.*?)\n:::`)
-	// Extract hidden content from blocks
-	blockContent := blockRe.FindAllStringSubmatch(content, -1)
-
-	// Match inline hidden content with optional attributes
-	inlineRe := regexp.MustCompile(`:::hide(?:\{[^}]*\})?\s+(.*?):::`)
-	// Extract hidden content from inline
-	inlineContent := inlineRe.FindAllStringSubmatch(content, -1)
-
-	// Check keywords in block content
-	for _, matches := range blockContent {
-		if len(matches) > 1 {
-			for _, keyword := range keywords {
-				if strings.Contains(matches[1], keyword) {
-					return true
-				}
-			}
-		}
-	}
-
-	// Check keywords in inline content
-	for _, matches := range inlineContent {
-		if len(matches) > 1 {
-			for _, keyword := range keywords {
-				if strings.Contains(matches[1], keyword) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
 // stringContainsOneOfKeywords reports whether s contains any of the provided keywords.
-// 检查为区分大小写的子串匹配；若 s 包含任一关键字则返回 true。
+// Check for case-sensitive substring matches; returns `true` if `s` contains any of the keywords.
 func stringContainsOneOfKeywords(s string, keywords []string) bool {
 	for _, keyword := range keywords {
 		if strings.Contains(s, keyword) {

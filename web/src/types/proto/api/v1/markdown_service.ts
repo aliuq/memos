@@ -44,6 +44,9 @@ export enum NodeType {
   REFERENCED_CONTENT = "REFERENCED_CONTENT",
   SPOILER = "SPOILER",
   HTML_ELEMENT = "HTML_ELEMENT",
+  /** CUSTOM_HIDDEN_INLINE - Custom nodes. */
+  CUSTOM_HIDDEN_INLINE = "CUSTOM_HIDDEN_INLINE",
+  CUSTOM_HIDDEN_BLOCK = "CUSTOM_HIDDEN_BLOCK",
   UNRECOGNIZED = "UNRECOGNIZED",
 }
 
@@ -145,6 +148,12 @@ export function nodeTypeFromJSON(object: any): NodeType {
     case 68:
     case "HTML_ELEMENT":
       return NodeType.HTML_ELEMENT;
+    case 10001:
+    case "CUSTOM_HIDDEN_INLINE":
+      return NodeType.CUSTOM_HIDDEN_INLINE;
+    case 10002:
+    case "CUSTOM_HIDDEN_BLOCK":
+      return NodeType.CUSTOM_HIDDEN_BLOCK;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -218,6 +227,10 @@ export function nodeTypeToNumber(object: NodeType): number {
       return 67;
     case NodeType.HTML_ELEMENT:
       return 68;
+    case NodeType.CUSTOM_HIDDEN_INLINE:
+      return 10001;
+    case NodeType.CUSTOM_HIDDEN_BLOCK:
+      return 10002;
     case NodeType.UNRECOGNIZED:
     default:
       return -1;
@@ -294,7 +307,12 @@ export interface Node {
   superscriptNode?: SuperscriptNode | undefined;
   referencedContentNode?: ReferencedContentNode | undefined;
   spoilerNode?: SpoilerNode | undefined;
-  htmlElementNode?: HTMLElementNode | undefined;
+  htmlElementNode?:
+    | HTMLElementNode
+    | undefined;
+  /** Custom nodes. */
+  customHiddenInlineNode?: CustomHiddenInlineNode | undefined;
+  customHiddenBlockNode?: CustomHiddenBlockNode | undefined;
 }
 
 export interface LineBreakNode {
@@ -494,6 +512,20 @@ export interface HTMLElementNode {
 export interface HTMLElementNode_AttributesEntry {
   key: string;
   value: string;
+}
+
+export interface CustomHiddenInlineNode {
+  content: string;
+  description: string;
+  icon: string;
+  placeholder: string;
+}
+
+export interface CustomHiddenBlockNode {
+  children: Node[];
+  description: string;
+  icon: string;
+  placeholder: string;
 }
 
 function createBaseParseMarkdownRequest(): ParseMarkdownRequest {
@@ -922,6 +954,8 @@ function createBaseNode(): Node {
     referencedContentNode: undefined,
     spoilerNode: undefined,
     htmlElementNode: undefined,
+    customHiddenInlineNode: undefined,
+    customHiddenBlockNode: undefined,
   };
 }
 
@@ -1022,6 +1056,12 @@ export const Node: MessageFns<Node> = {
     }
     if (message.htmlElementNode !== undefined) {
       HTMLElementNode.encode(message.htmlElementNode, writer.uint32(546).fork()).join();
+    }
+    if (message.customHiddenInlineNode !== undefined) {
+      CustomHiddenInlineNode.encode(message.customHiddenInlineNode, writer.uint32(80010).fork()).join();
+    }
+    if (message.customHiddenBlockNode !== undefined) {
+      CustomHiddenBlockNode.encode(message.customHiddenBlockNode, writer.uint32(80018).fork()).join();
     }
     return writer;
   },
@@ -1289,6 +1329,22 @@ export const Node: MessageFns<Node> = {
           message.htmlElementNode = HTMLElementNode.decode(reader, reader.uint32());
           continue;
         }
+        case 10001: {
+          if (tag !== 80010) {
+            break;
+          }
+
+          message.customHiddenInlineNode = CustomHiddenInlineNode.decode(reader, reader.uint32());
+          continue;
+        }
+        case 10002: {
+          if (tag !== 80018) {
+            break;
+          }
+
+          message.customHiddenBlockNode = CustomHiddenBlockNode.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1400,6 +1456,14 @@ export const Node: MessageFns<Node> = {
     message.htmlElementNode = (object.htmlElementNode !== undefined && object.htmlElementNode !== null)
       ? HTMLElementNode.fromPartial(object.htmlElementNode)
       : undefined;
+    message.customHiddenInlineNode =
+      (object.customHiddenInlineNode !== undefined && object.customHiddenInlineNode !== null)
+        ? CustomHiddenInlineNode.fromPartial(object.customHiddenInlineNode)
+        : undefined;
+    message.customHiddenBlockNode =
+      (object.customHiddenBlockNode !== undefined && object.customHiddenBlockNode !== null)
+        ? CustomHiddenBlockNode.fromPartial(object.customHiddenBlockNode)
+        : undefined;
     return message;
   },
 };
@@ -3193,6 +3257,170 @@ export const HTMLElementNode_AttributesEntry: MessageFns<HTMLElementNode_Attribu
     const message = createBaseHTMLElementNode_AttributesEntry();
     message.key = object.key ?? "";
     message.value = object.value ?? "";
+    return message;
+  },
+};
+
+function createBaseCustomHiddenInlineNode(): CustomHiddenInlineNode {
+  return { content: "", description: "", icon: "", placeholder: "" };
+}
+
+export const CustomHiddenInlineNode: MessageFns<CustomHiddenInlineNode> = {
+  encode(message: CustomHiddenInlineNode, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content !== "") {
+      writer.uint32(10).string(message.content);
+    }
+    if (message.description !== "") {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.icon !== "") {
+      writer.uint32(26).string(message.icon);
+    }
+    if (message.placeholder !== "") {
+      writer.uint32(34).string(message.placeholder);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CustomHiddenInlineNode {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCustomHiddenInlineNode();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.content = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.icon = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.placeholder = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<CustomHiddenInlineNode>): CustomHiddenInlineNode {
+    return CustomHiddenInlineNode.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CustomHiddenInlineNode>): CustomHiddenInlineNode {
+    const message = createBaseCustomHiddenInlineNode();
+    message.content = object.content ?? "";
+    message.description = object.description ?? "";
+    message.icon = object.icon ?? "";
+    message.placeholder = object.placeholder ?? "";
+    return message;
+  },
+};
+
+function createBaseCustomHiddenBlockNode(): CustomHiddenBlockNode {
+  return { children: [], description: "", icon: "", placeholder: "" };
+}
+
+export const CustomHiddenBlockNode: MessageFns<CustomHiddenBlockNode> = {
+  encode(message: CustomHiddenBlockNode, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.children) {
+      Node.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.description !== "") {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.icon !== "") {
+      writer.uint32(26).string(message.icon);
+    }
+    if (message.placeholder !== "") {
+      writer.uint32(34).string(message.placeholder);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CustomHiddenBlockNode {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCustomHiddenBlockNode();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.children.push(Node.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.icon = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.placeholder = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<CustomHiddenBlockNode>): CustomHiddenBlockNode {
+    return CustomHiddenBlockNode.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CustomHiddenBlockNode>): CustomHiddenBlockNode {
+    const message = createBaseCustomHiddenBlockNode();
+    message.children = object.children?.map((e) => Node.fromPartial(e)) || [];
+    message.description = object.description ?? "";
+    message.icon = object.icon ?? "";
+    message.placeholder = object.placeholder ?? "";
     return message;
   },
 };

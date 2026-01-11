@@ -18,13 +18,13 @@ func TestConvertExprToSQL(t *testing.T) {
 	}{
 		{
 			filter: `tag in ["tag1", "tag2"]`,
-			want:   "(JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?))",
-			args:   []any{`"tag1"`, `"tag2"`},
+			want:   "((JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_EXTRACT(`memo`.`payload`, '$.tags') LIKE ?) OR (JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_EXTRACT(`memo`.`payload`, '$.tags') LIKE ?))",
+			args:   []any{`"tag1"`, `%"tag1/%`, `"tag2"`, `%"tag2/%`},
 		},
 		{
 			filter: `!(tag in ["tag1", "tag2"])`,
-			want:   "NOT ((JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?)))",
-			args:   []any{`"tag1"`, `"tag2"`},
+			want:   "NOT (((JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_EXTRACT(`memo`.`payload`, '$.tags') LIKE ?) OR (JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_EXTRACT(`memo`.`payload`, '$.tags') LIKE ?)))",
+			args:   []any{`"tag1"`, `%"tag1/%`, `"tag2"`, `%"tag2/%`},
 		},
 		{
 			filter: `content.contains("memos")`,
@@ -43,8 +43,8 @@ func TestConvertExprToSQL(t *testing.T) {
 		},
 		{
 			filter: `tag in ['tag1'] || content.contains('hello')`,
-			want:   "(JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR `memo`.`content` LIKE ?)",
-			args:   []any{`"tag1"`, "%hello%"},
+			want:   "((JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?) OR JSON_EXTRACT(`memo`.`payload`, '$.tags') LIKE ?) OR `memo`.`content` LIKE ?)",
+			args:   []any{`"tag1"`, `%"tag1/%`, "%hello%"},
 		},
 		{
 			filter: `1`,
@@ -109,7 +109,7 @@ func TestConvertExprToSQL(t *testing.T) {
 		{
 			filter: `"work" in tags`,
 			want:   "JSON_CONTAINS(JSON_EXTRACT(`memo`.`payload`, '$.tags'), ?)",
-			args:   []any{"work"},
+			args:   []any{`"work"`},
 		},
 		{
 			filter: `size(tags) == 2`,

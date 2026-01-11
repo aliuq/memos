@@ -4,14 +4,15 @@ import { cn } from "@/lib/utils";
 interface PlayerContainerProps {
   children: React.ReactNode;
   className?: string;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-const PlayerContainer = ({ children, className }: PlayerContainerProps) => {
+const PlayerContainer = ({ children, className, onClick }: PlayerContainerProps) => {
   const mediaFullscreenRef = useMediaFullscreenRef();
   const mergeClassName = cn("relative size-full bg-black overflow-hidden cursor-default", className);
 
   return (
-    <div data-slot="player-container" ref={mediaFullscreenRef} className={mergeClassName}>
+    <div data-slot="player-container" ref={mediaFullscreenRef} className={mergeClassName} onClick={onClick}>
       {children}
     </div>
   );

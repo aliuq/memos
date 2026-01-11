@@ -374,7 +374,7 @@ export const LazyVideo = memo(function LazyVideo({
       (isLoading || isLoaded) &&
       src && (
         <MediaProvider>
-          <PlayerContainer className="absolute">
+          <PlayerContainer className="absolute" onClick={onClick}>
             <PlayerVideo
               id={id}
               src={src}
@@ -389,7 +389,6 @@ export const LazyVideo = memo(function LazyVideo({
               onLoadedData={handleLoadedData}
               onError={handleError}
               onLoadedMetadata={(e) => handleLoadedMetadata(e)}
-              onClick={onClick}
               {...videoProps}
             />
 

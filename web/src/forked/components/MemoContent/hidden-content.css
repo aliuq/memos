@@ -4,8 +4,8 @@
   --hidden-bg: theme("colors.yellow.500/5%");
   --hidden-border: theme("colors.yellow.500/30%");
   --hidden-border-hover: theme("colors.yellow.500/30%");
-  --hidden-foreground: theme("colors.yellow.500");
-  --hidden-foreground-2: theme("colors.yellow.500/70%");
+  --hidden-foreground: theme("colors.yellow.600/90%");
+  --hidden-foreground-2: theme("colors.yellow.600/70%");
 }
 
 .dark {

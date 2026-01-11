@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -23,6 +22,7 @@ import (
 	"github.com/usememos/memos/plugin/webhook"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
+	"github.com/usememos/memos/server/forked"
 	"github.com/usememos/memos/server/runner/memopayload"
 	"github.com/usememos/memos/store"
 )
@@ -235,10 +235,11 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 	for _, memo := range memos {
 		// Process 1: 处理隐藏内容，条件是 a-非本人以外的所有访问都需要处理
 		if currentUser == nil || memo.CreatorID != currentUser.ID {
-			memo.Content = processHiddenContent(memo.Content)
+			memo.Content = forked.ProcessHiddenContent(memo.Content)
 		}
+
 		// Process 2: 搜索过滤，条件是 a-有搜索内容 b-搜索内容在处理后的内容中出现过
-		if len(memoFind.ContentSearch) > 0 && !stringContainsOneOfKeywords(memo.Content, memoFind.ContentSearch) {
+		if !forked.ProcessContentSearchFilter(memo.Content, memoFind.Filters) {
 			continue
 		}
 
@@ -290,7 +291,7 @@ func (s *APIV1Service) GetMemo(ctx context.Context, request *v1pb.GetMemoRequest
 
 	// Process 1: 处理隐藏内容，条件是 a-非本人以外的所有访问都需要处理
 	if user == nil || memo.CreatorID != user.ID {
-		memo.Content = processHiddenContent(memo.Content)
+		memo.Content = forked.ProcessHiddenContent(memo.Content)
 	}
 
 	reactions, err := s.Store.ListReactions(ctx, &store.FindReaction{
@@ -862,7 +863,7 @@ func getMemoContentSnippet(content string) (string, error) {
 
 	plainText := renderer.NewStringRenderer().Render(nodes)
 	// Snippet 默认需要处理隐藏内容
-	plainText = processHiddenContent(plainText)
+	plainText = forked.ProcessHiddenContent(plainText)
 
 	if len(plainText) > 64 {
 		return substring(plainText, 64) + "...", nil
@@ -922,69 +923,4 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 	}
 
 	return nil
-}
-
-// Process hidden content in the memo content.
-// Rules:
-//  1. inline, :::hide hidden content::: => `[hide-inline]`.
-//  2. inline with attributes, :::hide{foo=foo;bar=bar} hidden content::: => `[hide-inline{foo:foo,bar:bar}]`.
-//  3. block, :::hide{foo=foo;bar=bar}
-//     hidden content
-//     hidden content
-//     ::: => `[hide-block{foo:foo,bar:bar}]`.
-func processHiddenContent(content string) string {
-	// Match block hidden content with optional attributes
-	blockRe := regexp.MustCompile(`(?s):::hide(?:\{([^}]*)\})?\n(.*?)\n:::`)
-	processedContent := blockRe.ReplaceAllStringFunc(content, func(match string) string {
-		parts := blockRe.FindStringSubmatch(match)
-		if len(parts) > 1 && parts[1] != "" {
-			// Convert attributes from foo=bar;baz=qux format to {foo:bar,baz:qux}
-			attrs := strings.Split(parts[1], ";")
-			attrMap := make([]string, 0)
-			for _, attr := range attrs {
-				kv := strings.Split(attr, "=")
-				if len(kv) == 2 {
-					attrMap = append(attrMap, fmt.Sprintf("%s:%s", kv[0], kv[1]))
-				}
-			}
-			if len(attrMap) > 0 {
-				return fmt.Sprintf("[hide-block{%s}]", strings.Join(attrMap, ","))
-			}
-		}
-		return "[hide-block]"
-	})
-
-	// Match inline hidden content with optional attributes
-	inlineRe := regexp.MustCompile(`:::hide(?:\{([^}]*)\})?\s+(.*?):::`)
-	processedContent = inlineRe.ReplaceAllStringFunc(processedContent, func(match string) string {
-		parts := inlineRe.FindStringSubmatch(match)
-		if len(parts) > 1 && parts[1] != "" {
-			// Convert attributes from foo=bar;baz=qux format to {foo:bar,baz:qux}
-			attrs := strings.Split(parts[1], ";")
-			attrMap := make([]string, 0)
-			for _, attr := range attrs {
-				kv := strings.Split(attr, "=")
-				if len(kv) == 2 {
-					attrMap = append(attrMap, fmt.Sprintf("%s:%s", kv[0], kv[1]))
-				}
-			}
-			if len(attrMap) > 0 {
-				return fmt.Sprintf("[hide-inline{%s}]", strings.Join(attrMap, ","))
-			}
-		}
-		return "[hide-inline]"
-	})
-
-	return processedContent
-}
-
-// stringContainsOneOfKeywords reports whether s contains any of the provided keywords.
-// Check for case-sensitive substring matches; returns `true` if `s` contains any of the keywords.
-func stringContainsOneOfKeywords(s string, keywords []string) bool {
-	for _, keyword := range keywords {
-		if strings.Contains(s, keyword) {
-			return true
-		}
-	}
-	return false
 }

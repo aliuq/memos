@@ -400,7 +400,7 @@ export const LazyImage = memo(function LazyImage({
         <img
           ref={imgRef}
           className={cn(
-            "size-full object-cover bg-black transition-all duration-300 ease-in-out",
+            "size-full object-cover transition-all duration-300 ease-in-out",
             // Fade out and slightly scale down while loading
             isLoading && "opacity-0 scale-[0.95]",
             // Fade in and restore scale when loaded

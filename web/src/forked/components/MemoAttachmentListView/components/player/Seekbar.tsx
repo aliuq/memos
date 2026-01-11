@@ -1,5 +1,5 @@
-import { useMediaDispatch, useMediaSelector, MediaActionTypes, timeUtils } from "media-chrome/dist/react/media-store";
-import { useState, useRef, useEffect, useCallback, CSSProperties } from "react";
+import { MediaActionTypes, timeUtils, useMediaDispatch, useMediaSelector } from "media-chrome/dist/react/media-store";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface SeekbarProps {

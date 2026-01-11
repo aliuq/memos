@@ -1,7 +1,7 @@
 /**
  * @description Video resolution utilities and React hook with user interaction handling
  */
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { VideoResolution } from "../types";
 import { getOrientation } from "../utils";
 import { addToCache, getFromCache, hasCache } from "./mediaCache";
@@ -121,6 +121,7 @@ export function generateVideoThumbnail(
       video.oncanplay = null;
       video.onloadeddata = null;
       video.currentTime = 0;
+      video.muted = false;
     };
 
     const resolveOnce = (thumbnail: string) => {

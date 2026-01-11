@@ -1,19 +1,19 @@
 import { MediaPlaybackRateMenu, MediaPlaybackRateMenuButton } from "media-chrome/dist/react/menu/index";
 import {
-  MediaController,
   MediaControlBar,
-  MediaTimeRange,
-  MediaTimeDisplay,
+  MediaController,
+  MediaDurationDisplay,
+  MediaErrorDialog,
+  MediaFullscreenButton,
   MediaLoadingIndicator,
-  MediaPlayButton,
-  MediaSeekBackwardButton,
-  MediaSeekForwardButton,
   MediaMuteButton,
   MediaPipButton,
-  MediaFullscreenButton,
-  MediaErrorDialog,
-  MediaDurationDisplay,
+  MediaPlayButton,
   MediaPosterImage,
+  MediaSeekBackwardButton,
+  MediaSeekForwardButton,
+  MediaTimeDisplay,
+  MediaTimeRange,
 } from "media-chrome/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";

@@ -1,20 +1,46 @@
-import React, { useState, useCallback, useMemo } from "react";
-import Renderer from "@/components/MemoContent/Renderer";
-import { BaseProps } from "@/components/MemoContent/types";
+import React, { useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Node } from "@/types/proto/api/v1/markdown_service";
 import "./hidden-content.css";
 
-interface Props extends BaseProps {
-  children: Node[];
+interface Props {
+  children?: React.ReactNode;
   placeholder?: string;
   description?: string;
+  "data-hidden-block"?: string;
+  "data-placeholder"?: string;
+  "data-description"?: string;
+  [key: string]: any;
 }
 
-const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", description = "", className = "", ...rest }) => {
+const HiddenContentBlock: React.FC<Props> = (props) => {
+  const {
+    children,
+    placeholder: placeholderProp,
+    description: descriptionProp,
+    "data-placeholder": dataPlaceholder,
+    "data-description": dataDescription,
+    className = "",
+    ...rest
+  } = props;
+
+  // Merge props from both direct props and data attributes
+  const placeholder = placeholderProp || dataPlaceholder || "";
+  const description = descriptionProp || dataDescription || "";
+
+  // Filter out data attributes from rest
+  const filteredRest = Object.keys(rest).reduce(
+    (acc, key) => {
+      if (!key.startsWith("data-")) {
+        acc[key] = rest[key];
+      }
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const defaultPlaceholder = placeholder || "此处内容已隐藏";
   const defaultDescription = description || "请联系管理员获取查看权限";
-  const hasContent = children?.length > 0;
+  const childrenArray = React.Children.toArray(children);
+  const hasContent = childrenArray.length > 0;
 
   const [show, setShow] = useState(false);
 
@@ -35,15 +61,7 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
     [className],
   );
 
-  const renderedChildren = useMemo(
-    () =>
-      show && hasContent
-        ? children.map((child, index) => (
-            <Renderer key={`${child.type}-${JSON.stringify(child).slice(0, 20)}-${index}`} index={String(index)} node={child} />
-          ))
-        : null,
-    [show, hasContent, children],
-  );
+  const renderedChildren = useMemo(() => (show && hasContent ? childrenArray : null), [show, hasContent, childrenArray]);
 
   const placeholderContent = useMemo(
     () => (
@@ -70,7 +88,7 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
     {
       className: computedClassName,
       onClick: hasContent ? handleToggle : undefined,
-      ...rest,
+      ...filteredRest,
     },
     [
       hasContent && (
@@ -84,4 +102,4 @@ const CustomHiddenBlock: React.FC<Props> = ({ children, placeholder = "", descri
   );
 };
 
-export default CustomHiddenBlock;
+export default HiddenContentBlock;

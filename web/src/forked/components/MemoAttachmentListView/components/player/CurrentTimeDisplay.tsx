@@ -1,4 +1,4 @@
-import { useMediaSelector, timeUtils } from "media-chrome/dist/react/media-store";
+import { timeUtils, useMediaSelector } from "media-chrome/dist/react/media-store";
 import { cn } from "@/lib/utils";
 import IconButton, { type IconButtonProps } from "./IconButton";
 

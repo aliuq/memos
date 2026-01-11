@@ -1,5 +1,5 @@
 import { Pause, Play } from "lucide-react";
-import { useMediaDispatch, useMediaSelector, MediaActionTypes } from "media-chrome/dist/react/media-store";
+import { MediaActionTypes, useMediaDispatch, useMediaSelector } from "media-chrome/dist/react/media-store";
 import { cn } from "@/lib/utils";
 import IconButton, { IconButtonProps } from "./IconButton";
 

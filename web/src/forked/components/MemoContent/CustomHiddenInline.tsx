@@ -1,15 +1,41 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { BaseProps } from "@/components/MemoContent/types";
+import React, { useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import "./hidden-content.css";
 
-interface Props extends BaseProps {
+interface Props {
   content?: string;
   placeholder?: string;
   description?: string;
+  "data-hidden-inline"?: string;
+  "data-content"?: string;
+  "data-placeholder"?: string;
+  [key: string]: any;
 }
 
-const CustomHiddenInline: React.FC<Props> = ({ content = "", placeholder = "", className = "", ...rest }) => {
+const HiddenContentInline: React.FC<Props> = (props) => {
+  const {
+    content: contentProp,
+    placeholder: placeholderProp,
+    "data-content": dataContent,
+    "data-placeholder": dataPlaceholder,
+    className = "",
+    ...rest
+  } = props;
+
+  // Merge props from both direct props and data attributes
+  const content = contentProp || dataContent || "";
+  const placeholder = placeholderProp || dataPlaceholder || "";
+
+  // Filter out data attributes from rest
+  const filteredRest = Object.keys(rest).reduce(
+    (acc, key) => {
+      if (!key.startsWith("data-")) {
+        acc[key] = rest[key];
+      }
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const fmtContent = useMemo(() => content.trim(), [content]);
   const defaultText = placeholder || "内容已隐藏";
 
@@ -35,7 +61,7 @@ const CustomHiddenInline: React.FC<Props> = ({ content = "", placeholder = "", c
   );
 
   return (
-    <span className={computedClassName} onClick={hasContent ? handleToggle : undefined} {...rest}>
+    <span className={computedClassName} onClick={hasContent ? handleToggle : undefined} {...filteredRest}>
       <span role="img" aria-label="hidden" className="select-none">
         {show ? "🔓" : "🔒"}
       </span>
@@ -44,4 +70,4 @@ const CustomHiddenInline: React.FC<Props> = ({ content = "", placeholder = "", c
   );
 };
 
-export default CustomHiddenInline;
+export default HiddenContentInline;

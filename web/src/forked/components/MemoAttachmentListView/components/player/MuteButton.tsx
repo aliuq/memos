@@ -1,4 +1,4 @@
-import { VolumeOff, Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeOff, VolumeX } from "lucide-react";
 import { MediaActionTypes, useMediaDispatch, useMediaSelector } from "media-chrome/dist/react/media-store";
 import { type ComponentType } from "react";
 import IconButton, { IconButtonProps } from "./IconButton";

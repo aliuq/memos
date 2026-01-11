@@ -1,7 +1,7 @@
 /**
  * @description Image resolution utilities and React hook
  */
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ImageResolution, Orientation } from "../types";
 import { getOrientation } from "../utils";
 import { addToCache, getFromCache, hasCache } from "./mediaCache";

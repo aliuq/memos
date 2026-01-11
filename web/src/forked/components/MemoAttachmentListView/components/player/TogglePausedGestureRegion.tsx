@@ -1,4 +1,4 @@
-import { useMediaDispatch, useMediaSelector, MediaActionTypes } from "media-chrome/dist/react/media-store";
+import { MediaActionTypes, useMediaDispatch, useMediaSelector } from "media-chrome/dist/react/media-store";
 
 const TogglePausedGestureRegion = ({ className }: { className?: string }) => {
   const dispatch = useMediaDispatch();

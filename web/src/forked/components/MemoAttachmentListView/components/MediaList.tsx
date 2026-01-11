@@ -1,6 +1,6 @@
 import photoswipe, { SlideData } from "photoswipe";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
-import { memo, useMemo, useEffect, useRef, useCallback } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Attachment } from "@/types/proto/api/v1/attachment_service";
 import { getAttachmentType, getAttachmentUrl, isImage } from "@/utils/attachment";

@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useLocation } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import MemoAttachmentListView from "@/forked/components/MemoAttachmentListView";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useNavigateTo from "@/hooks/useNavigateTo";
@@ -20,7 +19,8 @@ import MemoActionMenu from "./MemoActionMenu";
 import MemoContent from "./MemoContent";
 import MemoEditor from "./MemoEditor";
 import MemoReactionistView from "./MemoReactionListView";
-import { AttachmentList, LocationDisplay, RelationList } from "./memo-metadata";
+import AttachmentList from "@/forked/components/MemoAttachmentListView";
+import { LocationDisplay, RelationList } from "./memo-metadata";
 import PreviewImageDialog from "./PreviewImageDialog";
 import ReactionSelector from "./ReactionSelector";
 import UserAvatar from "./UserAvatar";
@@ -347,7 +347,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
           parentPage={parentPage}
         />
         {memo.location && <LocationDisplay mode="view" location={memo.location} />}
-        <AttachmentList mode="view" attachments={memo.attachments} />
+        <AttachmentList attachments={memo.attachments} />
         <RelationList mode="view" relations={referencedMemos} currentMemoName={memo.name} parentPage={parentPage} />
         <MemoReactionistView memo={memo} reactions={memo.reactions} />
       </div>

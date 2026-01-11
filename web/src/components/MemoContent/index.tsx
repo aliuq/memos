@@ -3,6 +3,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import { memoStore } from "@/store";
@@ -10,6 +11,9 @@ import { useTranslate } from "@/utils/i18n";
 import { remarkPreserveType } from "@/utils/remark-plugins/remark-preserve-type";
 import { remarkTag } from "@/utils/remark-plugins/remark-tag";
 import { isSuperUser } from "@/utils/user";
+import HiddenContentBlock from "@/forked/components/MemoContent/CustomHiddenBlock";
+import HiddenContentInline from "@/forked/components/MemoContent/CustomHiddenInline";
+import { remarkHiddenContent } from "@/forked/remark-plugins/remark-hidden-content";
 import { CodeBlock } from "./CodeBlock";
 import { createConditionalComponent, isTagNode, isTaskListItemNode } from "./ConditionalComponent";
 import { MemoContentContext } from "./MemoContentContext";
@@ -98,12 +102,24 @@ const MemoContent = observer((props: Props) => {
           onDoubleClick={onMemoContentDoubleClick}
         >
           <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkTag, remarkPreserveType]}
+            remarkPlugins={[remarkGfm, remarkBreaks, remarkTag, remarkPreserveType, remarkHiddenContent]}
             rehypePlugins={[rehypeRaw]}
             components={{
               // Conditionally render custom components based on AST node type
               input: createConditionalComponent(TaskListItem, "input", isTaskListItemNode),
-              span: createConditionalComponent(Tag, "span", isTagNode),
+              span: (props: any) => {
+                if (props["data-hidden-inline"]) {
+                  return <HiddenContentInline {...props} />;
+                }
+                const ConditionalTag = createConditionalComponent(Tag, "span", isTagNode);
+                return <ConditionalTag {...props} />;
+              },
+              div: (props: any) => {
+                if (props["data-hidden-block"]) {
+                  return <HiddenContentBlock {...props} />;
+                }
+                return <div {...props} />;
+              },
               pre: CodeBlock,
               a: ({ href, children, ...props }) => (
                 <a href={href} target="_blank" rel="noopener noreferrer" {...props}>

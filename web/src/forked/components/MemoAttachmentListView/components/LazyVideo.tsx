@@ -1,14 +1,14 @@
 import { TriangleAlert, Video } from "lucide-react";
 import { MediaProvider } from "media-chrome/dist/react/media-store";
-import React, { memo, useEffect, useCallback, ReactNode, useReducer, useMemo } from "react";
+import React, { memo, ReactNode, useCallback, useEffect, useMemo, useReducer } from "react";
 import { cn } from "@/lib/utils";
-import { useIntersectionObserver, setupVideoInteractionHandler, calculateVideoResolution, generateVideoThumbnail } from "../hooks";
+import { calculateVideoResolution, generateVideoThumbnail, setupVideoInteractionHandler, useIntersectionObserver } from "../hooks";
 import { Orientation, VideoResolution } from "../types";
 import { renderSlot } from "../utils";
-import RenderMediaState from "./RenderMediaState";
 import ControlsContainer from "./player/ControlsContainer";
 import PlayerContainer from "./player/PlayerContainer";
 import PlayerVideo, { PlayerVideoProps } from "./player/PlayerVideo";
+import RenderMediaState from "./RenderMediaState";
 
 /**
  * Video loading status enum

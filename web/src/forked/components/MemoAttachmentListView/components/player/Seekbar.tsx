@@ -217,7 +217,7 @@ const Seekbar = ({ disabled = false, style, className = "" }: SeekbarProps) => {
       className={cn(
         "seekbar-container relative w-full group touch-none select-none",
         disabled ? "seekbar-disabled" : "cursor-pointer",
-        isHovering || isDragging ? "h-[--seekbar-height-hover]" : "h-[--seekbar-height]",
+        isHovering || isDragging ? "h-(--seekbar-height-hover)" : "h-(--seekbar-height)",
         "transition-[height] duration-150 ease",
         className,
       )}
@@ -240,12 +240,12 @@ const Seekbar = ({ disabled = false, style, className = "" }: SeekbarProps) => {
       }
     >
       {/* 背景轨道 */}
-      <div className="seekbar-track absolute inset-0 rounded-full bg-[--seekbar-track-color]" />
+      <div className="seekbar-track absolute inset-0 rounded-full bg-(--seekbar-track-color)" />
 
       {/* 已播放进度条 */}
       <div
         className={cn(
-          "seekbar-progress absolute left-0 top-0 h-full rounded-full bg-[--seekbar-progress-color] w-[--progressed]",
+          "seekbar-progress absolute left-0 top-0 h-full rounded-full bg-(--seekbar-progress-color) w-(--progressed)",
           isDragging ? "transition-none" : "transition-[width] duration-100 ease-linear",
         )}
       />
@@ -255,16 +255,16 @@ const Seekbar = ({ disabled = false, style, className = "" }: SeekbarProps) => {
         <>
           {/* 可点击区域扩大（隐藏，用于增加触摸区域） */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 left-[--progressed] -translate-x-1/2 w-11 h-11 rounded-full opacity-0"
+            className="absolute top-1/2 -translate-y-1/2 left-(--progressed) -translate-x-1/2 w-11 h-11 rounded-full opacity-0"
             style={{ pointerEvents: isHovering || isDragging ? "auto" : "none" }}
           />
           {/* 可视滑块 */}
           <div
             className={cn(
               "seekbar-thumb absolute top-1/2 rounded-full pointer-events-none will-change-transform",
-              "duration-100 ease-out left-[--progressed] -translate-x-1/2 -translate-y-1/2",
+              "duration-100 ease-out left-(--progressed) -translate-x-1/2 -translate-y-1/2",
               isHovering || isDragging ? "scale-100 opacity-100" : "scale-0 opacity-0",
-              "w-[--seekbar-thumb-size] h-[--seekbar-thumb-size] bg-[--seekbar-thumb-color] shadow-[--seekbar-thumb-shadow]",
+              "w-(--seekbar-thumb-size) h-(--seekbar-thumb-size) bg-(--seekbar-thumb-color) shadow-(--seekbar-thumb-shadow)",
               isDragging ? "transition-[transform,opacity]" : "transition-all",
             )}
           />
@@ -274,7 +274,7 @@ const Seekbar = ({ disabled = false, style, className = "" }: SeekbarProps) => {
       {/* 时间提示 */}
       {!disabled && hoverTime !== null && (isHovering || isDragging) && (
         <div
-          className="seekbar-tooltip absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded pointer-events-none whitespace-nowrap -translate-x-1/2 left-[--hover-position]"
+          className="seekbar-tooltip absolute bottom-full mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded pointer-events-none whitespace-nowrap -translate-x-1/2 left-(--hover-position)"
           style={
             {
               "--hover-position": `${hoverPosition}%`,

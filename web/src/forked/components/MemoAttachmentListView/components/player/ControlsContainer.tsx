@@ -28,12 +28,15 @@ const ControlsContainer = () => {
             abs
             className={`absolute w-10 inline-block text-right right-0 ${mediaIsFullscreen ? "bottom-7" : "bottom-2.5"}`}
           />
-          <div
-            className={`absolute inset-x-0 bottom-0 transition-all transform duration-500 ease-in-out ${
-              mediaPaused || userActive ? "-translate-y-px" : "translate-y-px"
-            } ${mediaIsFullscreen ? "py-4" : ""}`}
-          >
-            <Seekbar disabled={!mediaIsFullscreen} />
+          <div className={`absolute inset-x-0 bottom-0 ${mediaIsFullscreen ? "py-4" : ""}`}>
+            <Seekbar
+              disabled={!mediaIsFullscreen}
+              style={
+                {
+                  "--seekbar-height": mediaPaused || userActive ? "3px" : "1px",
+                } as React.CSSProperties
+              }
+            />
           </div>
         </div>
       </div>

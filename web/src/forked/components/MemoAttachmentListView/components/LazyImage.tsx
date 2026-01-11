@@ -406,7 +406,7 @@ export const LazyImage = memo(function LazyImage({
             // Fade in and restore scale when loaded
             isLoaded && "opacity-100 scale-100",
             // Blur to sharp transition effect
-            enableBlur && (isLoading ? "blur-sm" : isLoaded ? "blur-0" : ""),
+            enableBlur && (isLoading ? "blur-xs" : isLoaded ? "blur-0" : ""),
           )}
           src={src}
           alt={alt || filename}
@@ -428,7 +428,7 @@ export const LazyImage = memo(function LazyImage({
     <>
       {/* Placeholder (LQIP) - Low Quality Image Placeholder for better UX */}
       {placeholderSrc && state.status !== ImageStatus.LOADED && (
-        <img className="absolute inset-0 size-full object-cover blur-sm opacity-60" src={placeholderSrc} alt="" aria-hidden="true" />
+        <img className="absolute inset-0 size-full object-cover blur-xs opacity-60" src={placeholderSrc} alt="" aria-hidden="true" />
       )}
 
       {/* Status layer render - show current loading status */}

@@ -263,6 +263,7 @@ export function setupVideoInteractionHandler(options: SetupVideoInteractionOptio
           // Pause immediately after play succeeds
           // The purpose is to trigger metadata loading, not actually play the video
           videoEl.pause();
+          videoEl.currentTime = 0; // Reset to start
         })
         .catch(() => {
           // Ignore play errors - metadata might still load even if play fails

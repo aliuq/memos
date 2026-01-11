@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/common/ast"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -25,7 +27,6 @@ import (
 
 	"github.com/usememos/memos/internal/base"
 	"github.com/usememos/memos/internal/util"
-	"github.com/usememos/memos/plugin/filter"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
@@ -36,6 +37,9 @@ func (s *APIV1Service) ListUsers(ctx context.Context, request *v1pb.ListUsersReq
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
 	if currentUser.Role != store.RoleHost && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
@@ -43,10 +47,13 @@ func (s *APIV1Service) ListUsers(ctx context.Context, request *v1pb.ListUsersReq
 	userFind := &store.FindUser{}
 
 	if request.Filter != "" {
-		if err := s.validateUserFilter(ctx, request.Filter); err != nil {
+		username, err := extractUsernameFromFilter(request.Filter)
+		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid filter: %v", err)
 		}
-		userFind.Filters = append(userFind.Filters, request.Filter)
+		if username != "" {
+			userFind.Username = &username
+		}
 	}
 
 	users, err := s.Store.ListUsers(ctx, userFind)
@@ -67,13 +74,29 @@ func (s *APIV1Service) ListUsers(ctx context.Context, request *v1pb.ListUsersReq
 }
 
 func (s *APIV1Service) GetUser(ctx context.Context, request *v1pb.GetUserRequest) (*v1pb.User, error) {
-	userID, err := ExtractUserIDFromName(request.Name)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user name: %v", err)
+	// Extract identifier from "users/{id_or_username}"
+	identifier := extractUserIdentifierFromName(request.Name)
+	if identifier == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user name: %s", request.Name)
 	}
-	user, err := s.Store.GetUser(ctx, &store.FindUser{
-		ID: &userID,
-	})
+
+	var user *store.User
+	var err error
+
+	// Try to parse as numeric ID first
+	if userID, parseErr := strconv.ParseInt(identifier, 10, 32); parseErr == nil {
+		// It's a numeric ID
+		userID32 := int32(userID)
+		user, err = s.Store.GetUser(ctx, &store.FindUser{
+			ID: &userID32,
+		})
+	} else {
+		// It's a username
+		user, err = s.Store.GetUser(ctx, &store.FindUser{
+			Username: &identifier,
+		})
+	}
+
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
@@ -322,6 +345,9 @@ func (s *APIV1Service) GetUserSetting(ctx context.Context, request *v1pb.GetUser
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
 
 	// Only allow user to get their own settings
 	if currentUser.ID != userID {
@@ -355,6 +381,9 @@ func (s *APIV1Service) UpdateUserSetting(ctx context.Context, request *v1pb.Upda
 	currentUser, err := s.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 
 	// Only allow user to update their own settings
@@ -442,6 +471,9 @@ func (s *APIV1Service) ListUserSettings(ctx context.Context, request *v1pb.ListU
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
 
 	// Only allow user to list their own settings
 	if currentUser.ID != userID {
@@ -500,7 +532,7 @@ func (s *APIV1Service) ListUserAccessTokens(ctx context.Context, request *v1pb.L
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
 	if currentUser == nil {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -562,7 +594,7 @@ func (s *APIV1Service) CreateUserAccessToken(ctx context.Context, request *v1pb.
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
 	if currentUser == nil {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -630,7 +662,7 @@ func (s *APIV1Service) DeleteUserAccessToken(ctx context.Context, request *v1pb.
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
 	if currentUser == nil {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -673,7 +705,7 @@ func (s *APIV1Service) ListUserSessions(ctx context.Context, request *v1pb.ListU
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
 	if currentUser == nil {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -736,7 +768,7 @@ func (s *APIV1Service) RevokeUserSession(ctx context.Context, request *v1pb.Revo
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
 	if currentUser == nil {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -796,6 +828,9 @@ func (s *APIV1Service) ListUserWebhooks(ctx context.Context, request *v1pb.ListU
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
 	if currentUser.ID != userID && currentUser.Role != store.RoleHost && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
@@ -824,6 +859,9 @@ func (s *APIV1Service) CreateUserWebhook(ctx context.Context, request *v1pb.Crea
 	currentUser, err := s.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID && currentUser.Role != store.RoleHost && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -861,6 +899,9 @@ func (s *APIV1Service) UpdateUserWebhook(ctx context.Context, request *v1pb.Upda
 	currentUser, err := s.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID && currentUser.Role != store.RoleHost && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -930,6 +971,9 @@ func (s *APIV1Service) DeleteUserWebhook(ctx context.Context, request *v1pb.Dele
 	currentUser, err := s.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 	if currentUser.ID != userID && currentUser.Role != store.RoleHost && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
@@ -1043,8 +1087,6 @@ func convertUserRoleToStore(role v1pb.User_Role) store.Role {
 		return store.RoleHost
 	case v1pb.User_ADMIN:
 		return store.RoleAdmin
-	case v1pb.User_USER:
-		return store.RoleUser
 	default:
 		return store.RoleUser
 	}
@@ -1125,10 +1167,6 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, userID int32
 		}
 
 		switch key {
-		case storepb.UserSetting_GENERAL:
-			setting.Value = &v1pb.UserSetting_GeneralSetting_{
-				GeneralSetting: getDefaultUserGeneralSetting(),
-			}
 		case storepb.UserSetting_SESSIONS:
 			setting.Value = &v1pb.UserSetting_SessionsSetting_{
 				SessionsSetting: &v1pb.UserSetting_SessionsSetting{
@@ -1342,36 +1380,95 @@ func extractWebhookIDFromName(name string) string {
 	return ""
 }
 
-// validateUserFilter validates the user filter string.
-func (s *APIV1Service) validateUserFilter(_ context.Context, filterStr string) error {
+// extractUsernameFromFilter extracts username from the filter string using CEL.
+// Supported filter format: "username == 'steven'"
+// Returns the username value and an error if the filter format is invalid.
+func extractUsernameFromFilter(filterStr string) (string, error) {
+	filterStr = strings.TrimSpace(filterStr)
 	if filterStr == "" {
-		return errors.New("filter cannot be empty")
-	}
-	// Validate the filter.
-	parsedExpr, err := filter.Parse(filterStr, filter.UserFilterCELAttributes...)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse filter")
-	}
-	convertCtx := filter.NewConvertContext()
-
-	// Determine the dialect based on the actual database driver
-	var dialect filter.SQLDialect
-	switch s.Profile.Driver {
-	case "sqlite":
-		dialect = &filter.SQLiteDialect{}
-	case "mysql":
-		dialect = &filter.MySQLDialect{}
-	case "postgres":
-		dialect = &filter.PostgreSQLDialect{}
-	default:
-		// Default to SQLite for unknown drivers
-		dialect = &filter.SQLiteDialect{}
+		return "", nil
 	}
 
-	converter := filter.NewUserSQLConverter(dialect)
-	err = converter.ConvertExprToSQL(convertCtx, parsedExpr.GetExpr())
+	// Create CEL environment with username variable
+	env, err := cel.NewEnv(
+		cel.Variable("username", cel.StringType),
+	)
 	if err != nil {
-		return errors.Wrap(err, "failed to convert filter to SQL")
+		return "", errors.Wrap(err, "failed to create CEL environment")
 	}
-	return nil
+
+	// Parse and check the filter expression
+	celAST, issues := env.Compile(filterStr)
+	if issues != nil && issues.Err() != nil {
+		return "", errors.Wrapf(issues.Err(), "invalid filter expression: %s", filterStr)
+	}
+
+	// Extract username from the AST
+	username, err := extractUsernameFromAST(celAST.NativeRep().Expr())
+	if err != nil {
+		return "", err
+	}
+
+	return username, nil
+}
+
+// extractUsernameFromAST extracts the username value from a CEL AST expression.
+func extractUsernameFromAST(expr ast.Expr) (string, error) {
+	if expr == nil {
+		return "", errors.New("empty expression")
+	}
+
+	// Check if this is a call expression (for ==, !=, etc.)
+	if expr.Kind() != ast.CallKind {
+		return "", errors.New("filter must be a comparison expression (e.g., username == 'value')")
+	}
+
+	call := expr.AsCall()
+
+	// We only support == operator
+	if call.FunctionName() != "_==_" {
+		return "", errors.Errorf("unsupported operator: %s (only '==' is supported)", call.FunctionName())
+	}
+
+	// The call should have exactly 2 arguments
+	args := call.Args()
+	if len(args) != 2 {
+		return "", errors.New("invalid comparison expression")
+	}
+
+	// Try to extract username from either left or right side
+	if username, ok := extractUsernameFromComparison(args[0], args[1]); ok {
+		return username, nil
+	}
+	if username, ok := extractUsernameFromComparison(args[1], args[0]); ok {
+		return username, nil
+	}
+
+	return "", errors.New("filter must compare 'username' field with a string constant")
+}
+
+// extractUsernameFromComparison tries to extract username value if left is 'username' ident and right is a string constant.
+func extractUsernameFromComparison(left, right ast.Expr) (string, bool) {
+	// Check if left side is 'username' identifier
+	if left.Kind() != ast.IdentKind {
+		return "", false
+	}
+	ident := left.AsIdent()
+	if ident != "username" {
+		return "", false
+	}
+
+	// Right side should be a constant string
+	if right.Kind() != ast.LiteralKind {
+		return "", false
+	}
+	literal := right.AsLiteral()
+
+	// literal is a ref.Val, we need to get the Go value
+	str, ok := literal.Value().(string)
+	if !ok || str == "" {
+		return "", false
+	}
+
+	return str, true
 }

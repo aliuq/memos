@@ -31,7 +31,7 @@ const PlayBigButton = ({ className, center = false, ...rest }: Omit<IconButtonPr
       name="play-big-button"
       label={label}
       rounded={false}
-      className={cn("[&_svg]:!size-8", center && "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2", className)}
+      className={cn("[&_svg]:size-8!", center && "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2", className)}
       onClick={togglePlay}
       {...rest}
     >

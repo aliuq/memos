@@ -368,7 +368,7 @@ export function getVideoResolution(src: string, options: GetVideoResolutionOptio
         video.removeAttribute(key);
       }
 
-      // Stop playback and release resources
+      // Stop playback and release attachments
       video.pause();
       video.removeAttribute("src");
       video.load(); // Reset video element state

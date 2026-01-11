@@ -2,8 +2,8 @@ import photoswipe, { SlideData } from "photoswipe";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import { memo, useMemo, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Resource } from "@/types/proto/api/v1/resource_service";
-import { getResourceType, getResourceUrl, isImage } from "@/utils/resource";
+import { Attachment } from "@/types/proto/api/v1/attachment_service";
+import { getAttachmentType, getAttachmentUrl, isImage } from "@/utils/attachment";
 import { getImageResolution, useMediaQuery } from "../hooks";
 import "../photoswipe.css";
 import { pauseVideos, retry } from "../utils";
@@ -11,10 +11,6 @@ import { LazyImage } from "./LazyImage";
 import { LazyVideo } from "./LazyVideo";
 import "./player/media-theme-mini";
 import "photoswipe/style.css";
-
-interface GridViewProps {
-  resources: Resource[];
-}
 
 interface RenderMediaProps {
   dataSource: DataSource;
@@ -24,11 +20,11 @@ interface RenderMediaProps {
 }
 
 type DataSource = SlideData & {
-  resourceId: string;
-  resourceUrl: string;
+  attachmentId: string;
+  attachmentUrl: string;
   isFirst: boolean;
   isLast: boolean;
-  original: Resource;
+  original: Attachment;
   filename: string;
 };
 
@@ -83,9 +79,9 @@ const RemainingCountOverlay = ({ remainingCount }: { remainingCount: number }) =
   );
 };
 
-const MemoGridView = ({ resources }: GridViewProps) => {
-  const len = resources.length;
-  const memoId = resources[0]?.memo?.replace(/\//g, "-") || "unknown";
+const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
+  const len = attachments.length;
+  const memoId = attachments[0]?.memo?.replace(/\//g, "-") || "unknown";
   const galleryRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<PhotoSwipeLightbox | null>(null);
 
@@ -93,36 +89,36 @@ const MemoGridView = ({ resources }: GridViewProps) => {
 
   const isVideo = (type: string) => type === "video/*";
 
-  const getResourceId = (resource: Resource) => `${resource.name}`.replace(/\//g, "-");
+  const getAttachmentId = (attachment: Attachment) => `${attachment.name}`.replace(/\//g, "-");
 
   // Prepare PhotoSwipe data source
   // Width/height data not included by default, will be dynamically fetched in itemData filter
   const dataSources = useMemo<DataSource[]>(() => {
-    return resources.map((resource, index) => {
-      const resourceUrl = getResourceUrl(resource);
-      const type = getResourceType(resource);
-      const resourceId = getResourceId(resource);
+    return attachments.map((attachment, index) => {
+      const attachmentUrl = getAttachmentUrl(attachment);
+      const type = getAttachmentType(attachment);
+      const attachmentId = getAttachmentId(attachment);
       const isFirstMemo = index === 0;
       const isLastMemo = index === MAX_DISPLAY_COUNT - 1;
 
       const commonData = {
-        resourceId,
-        resourceUrl,
+        attachmentId,
+        attachmentUrl,
         isFirst: isFirstMemo,
         isLast: isLastMemo,
-        original: resource,
+        original: attachment,
         index,
-        filename: resource.filename,
+        filename: attachment.filename,
       };
 
       // Image
       if (isImage(type)) {
-        const thumbUrl = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
+        const thumbUrl = attachment.externalLink ? attachmentUrl : `${attachmentUrl}?thumbnail=true`;
         return {
-          src: resourceUrl,
+          src: attachmentUrl,
           msrc: thumbUrl,
           type: "image" as const,
-          alt: resource.filename,
+          alt: attachment.filename,
           ...commonData,
         };
       }
@@ -130,14 +126,14 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       else if (isVideo(type)) {
         // Video as HTML slide, using media-chrome
         return {
-          html: `<media-theme-mini id="${resourceId}" src="${resourceUrl}"></media-theme-mini>`,
+          html: `<media-theme-mini id="${attachmentId}" src="${attachmentUrl}"></media-theme-mini>`,
           type: "video" as const,
-          alt: resource.filename,
+          alt: attachment.filename,
           ...commonData,
         };
       }
     }) as DataSource[];
-  }, [resources]);
+  }, [attachments]);
 
   const displayCount = Math.min(dataSources.length, MAX_DISPLAY_COUNT);
   const remainingCount = Math.max(0, dataSources.length - MAX_DISPLAY_COUNT);
@@ -188,7 +184,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       if (!galleryEl) return thumbEl!;
 
       // Return img element for both images and videos
-      const mediaEl = galleryEl.querySelector<HTMLElement>(`[data-resource="${data.resourceId}"] img`);
+      const mediaEl = galleryEl.querySelector<HTMLElement>(`[data-attachment="${data.attachmentId}"] img`);
       if (mediaEl) {
         return mediaEl;
       }
@@ -212,7 +208,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       if (itemData.type === "image") {
         // Try to get image dimensions from DOM
         if (galleryEl) {
-          const el = galleryEl.querySelector(`[data-resource="${itemData.resourceId}"] img`);
+          const el = galleryEl.querySelector(`[data-attachment="${itemData.attachmentId}"] img`);
           if (el instanceof HTMLImageElement && el.naturalWidth > 0) {
             const w = el.naturalWidth;
             const h = el.naturalHeight;
@@ -256,7 +252,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     // can be default prevented
     lightbox.on("contentActivate", ({ content }) => {
       // Pause other videos
-      pauseVideos({ id: content.data.resourceId });
+      pauseVideos({ id: content.data.attachmentId });
 
       if (content.type === "video") {
         // Wait for video element to be ready with reliable retry mechanism
@@ -313,8 +309,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
    */
   const RenderImage = useCallback(
     ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {
-      const { type, original: resource, resourceUrl, resourceId } = dataSource;
-      const url = resource.externalLink ? resourceUrl : `${resourceUrl}?thumbnail=true`;
+      const { type, original: attachment, attachmentUrl, attachmentId } = dataSource;
+      const url = attachment.externalLink ? attachmentUrl : `${attachmentUrl}?thumbnail=true`;
 
       const layoutClass = {
         landscape: "col-span-2 aspect-[4/3]",
@@ -323,13 +319,13 @@ const MemoGridView = ({ resources }: GridViewProps) => {
       };
 
       return (
-        <LazyImage src={url} id={resourceId} alt={dataSource.alt} filename={dataSource.filename}>
+        <LazyImage src={url} id={attachmentId} alt={dataSource.alt} filename={dataSource.filename}>
           {({ containerRef, content, containerProps, dimensions, status }) => {
             return (
               <div
                 ref={containerRef}
                 {...containerProps}
-                data-resource={resourceId}
+                data-attachment={attachmentId}
                 data-type={type}
                 className={cn(
                   containerProps.className,
@@ -356,7 +352,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
    */
   const RenderVideo = useCallback(
     ({ dataSource, index, len, remainingCount }: RenderMediaProps) => {
-      const { type, resourceUrl, resourceId } = dataSource;
+      const { type, attachmentUrl, attachmentId } = dataSource;
 
       const layoutClass = {
         landscape: "col-span-3 aspect-video",
@@ -366,8 +362,8 @@ const MemoGridView = ({ resources }: GridViewProps) => {
 
       return (
         <LazyVideo
-          src={resourceUrl}
-          id={resourceId}
+          src={attachmentUrl}
+          id={attachmentId}
           onLoad={(state) => {
             if (!dataSource.msrc && state.dimensions?.thumbnail) {
               dataSource.msrc = state.dimensions?.thumbnail;
@@ -379,7 +375,7 @@ const MemoGridView = ({ resources }: GridViewProps) => {
               <div
                 ref={containerRef}
                 {...containerProps}
-                data-resource={resourceId}
+                data-attachment={attachmentId}
                 data-type={type}
                 className={cn(
                   containerProps.className,
@@ -405,20 +401,20 @@ const MemoGridView = ({ resources }: GridViewProps) => {
     <div ref={galleryRef} id={memoId} className="w-full">
       <div
         className={cn(
-          "grid gap-[6px] grid-cols-3 overflow-hidden sm:max-w-[400px]",
-          len === 1 && dataSources[0].type === "video" && "sm:max-w-[640px]",
+          "grid gap-1.5 grid-cols-3 overflow-hidden sm:max-w-100",
+          len === 1 && dataSources[0].type === "video" && "sm:max-w-160",
           extraClassMap[len]?.root,
         )}
       >
         {dataSources.slice(0, displayCount).map((dataSource, index) => {
           if (dataSource.type === "image") {
             return (
-              <RenderImage key={dataSource.resourceId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
+              <RenderImage key={dataSource.attachmentId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
             );
           }
           if (dataSource?.type === "video") {
             return (
-              <RenderVideo key={dataSource.resourceId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
+              <RenderVideo key={dataSource.attachmentId} dataSource={dataSource} index={index} remainingCount={remainingCount} len={len} />
             );
           }
 
@@ -429,4 +425,4 @@ const MemoGridView = ({ resources }: GridViewProps) => {
   );
 };
 
-export default memo(MemoGridView);
+export default memo(MemoMediaList);

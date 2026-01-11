@@ -1,17 +1,17 @@
 /**
- * @description Shared LRU cache for media resources
+ * @description Shared LRU cache for media attachments
  */
-import { ResourceResolution } from "../types";
+import { AttachmentResolution } from "../types";
 
 // LRU cache strategy: max 100 items to avoid unlimited memory growth
 const MAX_CACHE_SIZE = 100;
-const mediaResolutionCache = new Map<string, ResourceResolution>();
+const mediaResolutionCache = new Map<string, AttachmentResolution>();
 const cacheAccessOrder: string[] = []; // Track access order for LRU
 
 /**
  * Add to cache and apply LRU strategy
  */
-export function addToCache(key: string, value: ResourceResolution): void {
+export function addToCache(key: string, value: AttachmentResolution): void {
   // If exists, remove old access record first
   if (mediaResolutionCache.has(key)) {
     const index = cacheAccessOrder.indexOf(key);
@@ -36,7 +36,7 @@ export function addToCache(key: string, value: ResourceResolution): void {
 /**
  * Get from cache and update access order
  */
-export function getFromCache(key: string): ResourceResolution | undefined {
+export function getFromCache(key: string): AttachmentResolution | undefined {
   const value = mediaResolutionCache.get(key);
   if (value) {
     // Update access order: move to end

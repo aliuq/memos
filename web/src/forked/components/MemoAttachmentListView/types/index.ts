@@ -1,13 +1,13 @@
-import { Resource } from "@/types/proto/api/v1/resource_service";
+import { Attachment } from "@/types/proto/api/v1/attachment_service";
 
 export interface MediaCardProps {
   length: number;
-  resource: Resource;
+  attachment: Attachment;
   onClick?: () => void;
 }
 
 export interface VideoPreviewProps {
-  resourceUrl: string;
+  attachmentUrl: string;
   isCover: boolean;
   onClick?: () => void;
 }
@@ -22,7 +22,7 @@ export interface LazyImageProps {
 }
 
 export interface GridViewProps {
-  resources: Resource[];
+  attachments: Attachment[];
   onSelect: (index: number) => void;
 }
 
@@ -54,4 +54,4 @@ export type VideoResolution = BaseResolution & {
   [key: string]: any;
 };
 
-export type ResourceResolution = ImageResolution | VideoResolution;
+export type AttachmentResolution = ImageResolution | VideoResolution;

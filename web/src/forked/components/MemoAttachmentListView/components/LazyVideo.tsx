@@ -44,6 +44,7 @@ interface LazyVideoProps {
   onStatusChange?: (status: VideoStatus) => void;
   /** Video dimensions loaded callback */
   onDimensionsLoad?: (dimensions: VideoResolution) => void;
+  onClick?: (e: React.MouseEvent) => void;
   /** Render Props pattern children */
   children?: (params: {
     /** Container ref for IntersectionObserver */
@@ -197,6 +198,7 @@ export const LazyVideo = memo(function LazyVideo({
   onLoad,
   onStatusChange,
   onDimensionsLoad,
+  onClick,
   children,
   renderVideo,
   slots = {},
@@ -387,6 +389,7 @@ export const LazyVideo = memo(function LazyVideo({
               onLoadedData={handleLoadedData}
               onError={handleError}
               onLoadedMetadata={(e) => handleLoadedMetadata(e)}
+              onClick={onClick}
               {...videoProps}
             />
 

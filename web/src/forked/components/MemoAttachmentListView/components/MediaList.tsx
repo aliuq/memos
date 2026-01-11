@@ -143,12 +143,12 @@ const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
 
     const lightbox = new PhotoSwipeLightbox({
       dataSource: dataSources,
-      bgOpacity: 1,
-      maxZoomLevel: 10,
       pswpModule: photoswipe,
+      bgOpacity: 1,
+      secondaryZoomLevel: 2.5,
+      maxZoomLevel: 20,
       zoom: false,
       close: sm,
-      secondaryZoomLevel: 2.5,
     });
 
     // Add filename display
@@ -319,8 +319,14 @@ const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
       };
 
       return (
-        <LazyImage src={url} id={attachmentId} alt={dataSource.alt} filename={dataSource.filename}>
-          {({ containerRef, content, containerProps, dimensions, status }) => {
+        <LazyImage
+          src={url}
+          id={attachmentId}
+          alt={dataSource.alt}
+          filename={dataSource.filename}
+          onClick={() => handleThumbnailClick(index)}
+        >
+          {({ containerRef, content, containerProps, dimensions }) => {
             return (
               <div
                 ref={containerRef}
@@ -333,8 +339,6 @@ const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
                   len > 1 && "aspect-square",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => (sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
-                onPointerUp={() => (!sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}
@@ -369,8 +373,9 @@ const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
               dataSource.msrc = state.dimensions?.thumbnail;
             }
           }}
+          onClick={() => handleThumbnailClick(index)}
         >
-          {({ containerRef, content, containerProps, dimensions, status }) => {
+          {({ containerRef, content, containerProps, dimensions }) => {
             return (
               <div
                 ref={containerRef}
@@ -383,8 +388,6 @@ const MemoMediaList = ({ attachments }: { attachments: Attachment[] }) => {
                   len > 1 && "aspect-square [&_video]:object-cover [&_img.poster]:object-cover",
                   extraClassMap[len]?.child,
                 )}
-                onClick={() => (sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
-                onPointerUp={() => (!sm && status === "loaded" ? handleThumbnailClick(index) : undefined)}
               >
                 {content}
                 {dataSource.isLast && <RemainingCountOverlay remainingCount={remainingCount!} />}

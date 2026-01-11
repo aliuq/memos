@@ -59,6 +59,7 @@ interface LazyImageProps {
   onDimensionsLoad?: (dimensions: ImageResolution) => void;
   /** Error callback */
   onError?: (error: ImageError) => void;
+  onClick?: (e: React.MouseEvent) => void;
 
   children?: (params: {
     /** Container ref for IntersectionObserver */
@@ -232,6 +233,7 @@ export const LazyImage = memo(function LazyImage({
   onStatusChange,
   onDimensionsLoad,
   onError,
+  onClick,
   children,
   renderImage,
   slots = {},
@@ -410,7 +412,9 @@ export const LazyImage = memo(function LazyImage({
           alt={alt || filename}
           onLoad={handleLoad}
           onError={handleError}
+          onClick={onClick}
           loading="lazy"
+          decoding="async"
         />
       )
     );

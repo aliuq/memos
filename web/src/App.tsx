@@ -1,71 +1,61 @@
-import { useColorScheme } from "@mui/joy";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router-dom";
-import { getSystemColorScheme } from "./helpers/utils";
 import useNavigateTo from "./hooks/useNavigateTo";
-import { userStore, workspaceStore } from "./store/v2";
+import { instanceStore, userStore } from "./store";
+import { cleanupExpiredOAuthState } from "./utils/oauth";
+import { loadTheme, setupSystemThemeListener } from "./utils/theme";
 
 const App = observer(() => {
   const { i18n } = useTranslation();
   const navigateTo = useNavigateTo();
-  const { mode, setMode } = useColorScheme();
-  const workspaceProfile = workspaceStore.state.profile;
-  const userSetting = userStore.state.userSetting;
-  const workspaceGeneralSetting = workspaceStore.state.generalSetting;
+  const instanceProfile = instanceStore.state.profile;
+  const userGeneralSetting = userStore.state.userGeneralSetting;
+  const instanceGeneralSetting = instanceStore.state.generalSetting;
+
+  // Clean up expired OAuth states on app initialization
+  useEffect(() => {
+    cleanupExpiredOAuthState();
+  }, []);
 
   // Redirect to sign up page if no instance owner.
   useEffect(() => {
-    if (!workspaceProfile.owner) {
+    if (!instanceProfile.owner) {
       navigateTo("/auth/signup");
     }
-  }, [workspaceProfile.owner]);
+  }, [instanceProfile.owner]);
 
   useEffect(() => {
-    const darkMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleColorSchemeChange = (e: MediaQueryListEvent) => {
-      const mode = e.matches ? "dark" : "light";
-      setMode(mode);
-    };
-
-    try {
-      darkMediaQuery.addEventListener("change", handleColorSchemeChange);
-    } catch (error) {
-      console.error("failed to initial color scheme listener", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (workspaceGeneralSetting.additionalStyle) {
+    if (instanceGeneralSetting.additionalStyle) {
       const styleEl = document.createElement("style");
-      styleEl.innerHTML = workspaceGeneralSetting.additionalStyle;
+      styleEl.innerHTML = instanceGeneralSetting.additionalStyle;
       styleEl.setAttribute("type", "text/css");
       document.body.insertAdjacentElement("beforeend", styleEl);
     }
-  }, [workspaceGeneralSetting.additionalStyle]);
+  }, [instanceGeneralSetting.additionalStyle]);
 
   useEffect(() => {
-    if (workspaceGeneralSetting.additionalScript) {
+    if (instanceGeneralSetting.additionalScript) {
       const scriptEl = document.createElement("script");
-      scriptEl.innerHTML = workspaceGeneralSetting.additionalScript;
+      scriptEl.innerHTML = instanceGeneralSetting.additionalScript;
       document.head.appendChild(scriptEl);
     }
-  }, [workspaceGeneralSetting.additionalScript]);
+  }, [instanceGeneralSetting.additionalScript]);
 
   // Dynamic update metadata with customized profile.
   useEffect(() => {
-    if (!workspaceGeneralSetting.customProfile) {
+    if (!instanceGeneralSetting.customProfile) {
       return;
     }
 
-    document.title = workspaceGeneralSetting.customProfile.title;
+    document.title = instanceGeneralSetting.customProfile.title;
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    link.href = workspaceGeneralSetting.customProfile.logoUrl || "/logo.webp";
-  }, [workspaceGeneralSetting.customProfile]);
+    link.href = instanceGeneralSetting.customProfile.logoUrl || "/logo.webp";
+  }, [instanceGeneralSetting.customProfile]);
 
   useEffect(() => {
-    const currentLocale = workspaceStore.state.locale;
+    const currentLocale = instanceStore.state.locale;
     // This will trigger re-rendering of the whole app.
     i18n.changeLanguage(currentLocale);
     document.documentElement.setAttribute("lang", currentLocale);
@@ -74,35 +64,45 @@ const App = observer(() => {
     } else {
       document.documentElement.setAttribute("dir", "ltr");
     }
-  }, [workspaceStore.state.locale]);
+  }, [instanceStore.state.locale]);
 
   useEffect(() => {
-    let currentAppearance = workspaceStore.state.appearance as Appearance;
-    if (currentAppearance === "system") {
-      currentAppearance = getSystemColorScheme();
-    }
-    setMode(currentAppearance);
-  }, [workspaceStore.state.appearance]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (mode === "light") {
-      root.classList.remove("dark");
-    } else if (mode === "dark") {
-      root.classList.add("dark");
-    }
-  }, [mode]);
-
-  useEffect(() => {
-    if (!userSetting) {
+    if (!userGeneralSetting) {
       return;
     }
 
-    workspaceStore.state.setPartial({
-      locale: userSetting.locale || workspaceStore.state.locale,
-      appearance: userSetting.appearance || workspaceStore.state.appearance,
+    instanceStore.state.setPartial({
+      locale: userGeneralSetting.locale || instanceStore.state.locale,
+      theme: userGeneralSetting.theme || instanceStore.state.theme,
     });
-  }, [userSetting?.locale, userSetting?.appearance]);
+  }, [userGeneralSetting?.locale, userGeneralSetting?.theme]);
+
+  // Load theme when instance theme changes or user setting changes
+  useEffect(() => {
+    const currentTheme = userGeneralSetting?.theme || instanceStore.state.theme;
+    if (currentTheme) {
+      loadTheme(currentTheme);
+    }
+  }, [userGeneralSetting?.theme, instanceStore.state.theme]);
+
+  // Listen for system theme changes when using "system" theme
+  useEffect(() => {
+    const currentTheme = userGeneralSetting?.theme || instanceStore.state.theme;
+
+    // Only set up listener if theme is "system"
+    if (currentTheme !== "system") {
+      return;
+    }
+
+    // Set up listener for OS theme preference changes
+    const cleanup = setupSystemThemeListener(() => {
+      // Reload theme when system preference changes
+      loadTheme(currentTheme);
+    });
+
+    // Cleanup listener on unmount or when theme changes
+    return cleanup;
+  }, [userGeneralSetting?.theme, instanceStore.state.theme]);
 
   return <Outlet />;
 });

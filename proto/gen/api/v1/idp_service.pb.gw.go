@@ -40,7 +40,9 @@ func request_IdentityProviderService_ListIdentityProviders_0(ctx context.Context
 		protoReq ListIdentityProvidersRequest
 		metadata runtime.ServerMetadata
 	)
-	io.Copy(io.Discard, req.Body)
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.ListIdentityProviders(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 }
@@ -60,7 +62,9 @@ func request_IdentityProviderService_GetIdentityProvider_0(ctx context.Context, 
 		metadata runtime.ServerMetadata
 		err      error
 	)
-	io.Copy(io.Discard, req.Body)
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	val, ok := pathParams["name"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "name")
@@ -91,12 +95,23 @@ func local_request_IdentityProviderService_GetIdentityProvider_0(ctx context.Con
 	return msg, metadata, err
 }
 
+var filter_IdentityProviderService_CreateIdentityProvider_0 = &utilities.DoubleArray{Encoding: map[string]int{"identity_provider": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+
 func request_IdentityProviderService_CreateIdentityProvider_0(ctx context.Context, marshaler runtime.Marshaler, client IdentityProviderServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
 		protoReq CreateIdentityProviderRequest
 		metadata runtime.ServerMetadata
 	)
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.IdentityProvider); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_IdentityProviderService_CreateIdentityProvider_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 	msg, err := client.CreateIdentityProvider(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -109,6 +124,12 @@ func local_request_IdentityProviderService_CreateIdentityProvider_0(ctx context.
 		metadata runtime.ServerMetadata
 	)
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.IdentityProvider); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_IdentityProviderService_CreateIdentityProvider_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 	msg, err := server.CreateIdentityProvider(ctx, &protoReq)
@@ -129,6 +150,9 @@ func request_IdentityProviderService_UpdateIdentityProvider_0(ctx context.Contex
 	}
 	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.IdentityProvider); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
 	}
 	if protoReq.UpdateMask == nil || len(protoReq.UpdateMask.GetPaths()) == 0 {
 		if fieldMask, err := runtime.FieldMaskFromRequestBody(newReader(), protoReq.IdentityProvider); err != nil {
@@ -199,7 +223,9 @@ func request_IdentityProviderService_DeleteIdentityProvider_0(ctx context.Contex
 		metadata runtime.ServerMetadata
 		err      error
 	)
-	io.Copy(io.Discard, req.Body)
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	val, ok := pathParams["name"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "name")
@@ -242,7 +268,7 @@ func RegisterIdentityProviderServiceHandlerServer(ctx context.Context, mux *runt
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/ListIdentityProviders", runtime.WithHTTPPathPattern("/api/v1/identityProviders"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/ListIdentityProviders", runtime.WithHTTPPathPattern("/api/v1/identity-providers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -262,7 +288,7 @@ func RegisterIdentityProviderServiceHandlerServer(ctx context.Context, mux *runt
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/GetIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/GetIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -282,7 +308,7 @@ func RegisterIdentityProviderServiceHandlerServer(ctx context.Context, mux *runt
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/CreateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/identityProviders"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/CreateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/identity-providers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -302,7 +328,7 @@ func RegisterIdentityProviderServiceHandlerServer(ctx context.Context, mux *runt
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/UpdateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{identity_provider.name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/UpdateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{identity_provider.name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -322,7 +348,7 @@ func RegisterIdentityProviderServiceHandlerServer(ctx context.Context, mux *runt
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/DeleteIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/DeleteIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -380,7 +406,7 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/ListIdentityProviders", runtime.WithHTTPPathPattern("/api/v1/identityProviders"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/ListIdentityProviders", runtime.WithHTTPPathPattern("/api/v1/identity-providers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -397,7 +423,7 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/GetIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/GetIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -414,7 +440,7 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/CreateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/identityProviders"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/CreateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/identity-providers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -431,7 +457,7 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/UpdateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{identity_provider.name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/UpdateIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{identity_provider.name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -448,7 +474,7 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/DeleteIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identityProviders/*}"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/memos.api.v1.IdentityProviderService/DeleteIdentityProvider", runtime.WithHTTPPathPattern("/api/v1/{name=identity-providers/*}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -465,11 +491,11 @@ func RegisterIdentityProviderServiceHandlerClient(ctx context.Context, mux *runt
 }
 
 var (
-	pattern_IdentityProviderService_ListIdentityProviders_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "v1", "identityProviders"}, ""))
-	pattern_IdentityProviderService_GetIdentityProvider_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identityProviders", "name"}, ""))
-	pattern_IdentityProviderService_CreateIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "v1", "identityProviders"}, ""))
-	pattern_IdentityProviderService_UpdateIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identityProviders", "identity_provider.name"}, ""))
-	pattern_IdentityProviderService_DeleteIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identityProviders", "name"}, ""))
+	pattern_IdentityProviderService_ListIdentityProviders_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "v1", "identity-providers"}, ""))
+	pattern_IdentityProviderService_GetIdentityProvider_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identity-providers", "name"}, ""))
+	pattern_IdentityProviderService_CreateIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "v1", "identity-providers"}, ""))
+	pattern_IdentityProviderService_UpdateIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identity-providers", "identity_provider.name"}, ""))
+	pattern_IdentityProviderService_DeleteIdentityProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 2, 5, 3}, []string{"api", "v1", "identity-providers", "name"}, ""))
 )
 
 var (

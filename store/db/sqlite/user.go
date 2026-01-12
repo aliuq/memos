@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/usememos/memos/store"
 )
 
@@ -85,6 +87,10 @@ func (d *DB) UpdateUser(ctx context.Context, update *store.UpdateUser) (*store.U
 
 func (d *DB) ListUsers(ctx context.Context, find *store.FindUser) ([]*store.User, error) {
 	where, args := []string{"1 = 1"}, []any{}
+
+	if len(find.Filters) > 0 {
+		return nil, errors.Errorf("user filters are not supported")
+	}
 
 	if v := find.ID; v != nil {
 		where, args = append(where, "id = ?"), append(args, *v)

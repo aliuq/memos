@@ -1,18 +1,23 @@
-import { Divider, Dropdown, List, ListItem, Menu, MenuButton, MenuItem } from "@mui/joy";
-import { Button } from "@usememos/mui";
-import { MoreVerticalIcon } from "lucide-react";
+import { MoreVerticalIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { identityProviderServiceClient } from "@/grpcweb";
 import { IdentityProvider } from "@/types/proto/api/v1/idp_service";
 import { useTranslate } from "@/utils/i18n";
-import showCreateIdentityProviderDialog from "../CreateIdentityProviderDialog";
+import CreateIdentityProviderDialog from "../CreateIdentityProviderDialog";
 import LearnMore from "../LearnMore";
+import SettingSection from "./SettingSection";
+import SettingTable from "./SettingTable";
 
 const SSOSection = () => {
   const t = useTranslate();
   const [identityProviderList, setIdentityProviderList] = useState<IdentityProvider[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingIdentityProvider, setEditingIdentityProvider] = useState<IdentityProvider | undefined>();
+  const [deleteTarget, setDeleteTarget] = useState<IdentityProvider | undefined>(undefined);
 
   useEffect(() => {
     fetchIdentityProviderList();
@@ -24,77 +29,118 @@ const SSOSection = () => {
   };
 
   const handleDeleteIdentityProvider = async (identityProvider: IdentityProvider) => {
-    const confirmed = window.confirm(t("setting.sso-section.confirm-delete", { name: identityProvider.title }));
-    if (confirmed) {
-      try {
-        await identityProviderServiceClient.deleteIdentityProvider({ name: identityProvider.name });
-      } catch (error: any) {
-        console.error(error);
-        toast.error(error.details);
-      }
-      await fetchIdentityProviderList();
+    setDeleteTarget(identityProvider);
+  };
+
+  const confirmDeleteIdentityProvider = async () => {
+    if (!deleteTarget) return;
+    try {
+      await identityProviderServiceClient.deleteIdentityProvider({ name: deleteTarget.name });
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.details);
+    }
+    await fetchIdentityProviderList();
+    setDeleteTarget(undefined);
+  };
+
+  const handleCreateIdentityProvider = () => {
+    setEditingIdentityProvider(undefined);
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleEditIdentityProvider = (identityProvider: IdentityProvider) => {
+    setEditingIdentityProvider(identityProvider);
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleDialogSuccess = async () => {
+    await fetchIdentityProviderList();
+    setIsCreateDialogOpen(false);
+    setEditingIdentityProvider(undefined);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    // Clear editing state when dialog is closed
+    if (!open) {
+      setEditingIdentityProvider(undefined);
     }
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 pt-2 pb-4">
-      <div className="w-full flex flex-row justify-between items-center gap-1">
-        <div className="flex flex-row items-center gap-1">
-          <span className="font-mono text-gray-400">{t("setting.sso-section.sso-list")}</span>
-          <LearnMore url="https://www.usememos.com/docs/advanced-settings/sso" />
+    <SettingSection
+      title={
+        <div className="flex items-center gap-2">
+          <span>{t("setting.sso-section.sso-list")}</span>
+          <LearnMore url="https://www.usememos.com/docs/configuration/authentication" />
         </div>
-        <Button color="primary" onClick={() => showCreateIdentityProviderDialog(undefined, fetchIdentityProviderList)}>
+      }
+      actions={
+        <Button onClick={handleCreateIdentityProvider}>
+          <PlusIcon className="w-4 h-4 mr-2" />
           {t("common.create")}
         </Button>
-      </div>
-      <Divider />
-      {identityProviderList.map((identityProvider) => (
-        <div
-          key={identityProvider.name}
-          className="py-2 w-full border-b last:border-b dark:border-zinc-700 flex flex-row items-center justify-between"
-        >
-          <div className="flex flex-row items-center">
-            <p className="ml-2">
-              {identityProvider.title}
-              <span className="text-sm ml-1 opacity-40">({identityProvider.type})</span>
-            </p>
-          </div>
-          <div className="flex flex-row items-center">
-            <Dropdown>
-              <MenuButton size="sm">
-                <MoreVerticalIcon className="w-4 h-auto" />
-              </MenuButton>
-              <Menu placement="bottom-end" size="sm">
-                <MenuItem onClick={() => showCreateIdentityProviderDialog(identityProvider, fetchIdentityProviderList)}>
-                  {t("common.edit")}
-                </MenuItem>
-                <MenuItem onClick={() => handleDeleteIdentityProvider(identityProvider)}>{t("common.delete")}</MenuItem>
-              </Menu>
-            </Dropdown>
-          </div>
-        </div>
-      ))}
-      {identityProviderList.length === 0 && (
-        <div className="w-full mt-2 text-sm dark:border-zinc-700 opacity-60 flex flex-row items-center justify-between">
-          <p className="">{t("setting.sso-section.no-sso-found")}</p>
-        </div>
-      )}
+      }
+    >
+      <SettingTable
+        columns={[
+          {
+            key: "title",
+            header: t("common.name"),
+            render: (_, provider: IdentityProvider) => (
+              <span className="text-foreground">
+                {provider.title}
+                <span className="ml-2 text-sm text-muted-foreground">({provider.type})</span>
+              </span>
+            ),
+          },
+          {
+            key: "actions",
+            header: "",
+            className: "text-right",
+            render: (_, provider: IdentityProvider) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVerticalIcon className="w-4 h-auto" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={2}>
+                  <DropdownMenuItem onClick={() => handleEditIdentityProvider(provider)}>{t("common.edit")}</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleDeleteIdentityProvider(provider)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    {t("common.delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          },
+        ]}
+        data={identityProviderList}
+        emptyMessage={t("setting.sso-section.no-sso-found")}
+        getRowKey={(provider) => provider.name}
+      />
 
-      <div className="w-full mt-4">
-        <p className="text-sm">{t("common.learn-more")}:</p>
-        <List component="ul" marker="disc" size="sm">
-          <ListItem>
-            <Link
-              className="text-sm text-blue-600 hover:underline"
-              to="https://www.usememos.com/docs/advanced-settings/sso"
-              target="_blank"
-            >
-              {t("setting.sso-section.single-sign-on")}
-            </Link>
-          </ListItem>
-        </List>
-      </div>
-    </div>
+      <CreateIdentityProviderDialog
+        open={isCreateDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        identityProvider={editingIdentityProvider}
+        onSuccess={handleDialogSuccess}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+        title={deleteTarget ? t("setting.sso-section.confirm-delete", { name: deleteTarget.title }) : ""}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={confirmDeleteIdentityProvider}
+        confirmVariant="destructive"
+      />
+    </SettingSection>
   );
 };
 

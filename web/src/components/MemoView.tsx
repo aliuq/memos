@@ -1,26 +1,27 @@
-import { Tooltip } from "@mui/joy";
 import { BookmarkIcon, EyeOffIcon, MessageCircleMoreIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useLocation } from "react-router-dom";
-import MemoResourceListView from "@/forked/components/MemoResourceListView";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useNavigateTo from "@/hooks/useNavigateTo";
-import { memoStore, userStore, workspaceStore } from "@/store/v2";
+import i18n from "@/i18n";
+import { cn } from "@/lib/utils";
+import { instanceStore, memoStore, userStore } from "@/store";
 import { State } from "@/types/proto/api/v1/common";
 import { Memo, MemoRelation_Type, Visibility } from "@/types/proto/api/v1/memo_service";
-import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityToString } from "@/utils/memo";
 import { isSuperUser } from "@/utils/user";
 import MemoActionMenu from "./MemoActionMenu";
 import MemoContent from "./MemoContent";
 import MemoEditor from "./MemoEditor";
-import MemoLocationView from "./MemoLocationView";
 import MemoReactionistView from "./MemoReactionListView";
-import MemoRelationListView from "./MemoRelationListView";
-import showPreviewImageDialog from "./PreviewImageDialog";
+import AttachmentList from "@/forked/components/MemoAttachmentListView";
+import { LocationDisplay, RelationList } from "./memo-metadata";
+import PreviewImageDialog from "./PreviewImageDialog";
 import ReactionSelector from "./ReactionSelector";
 import UserAvatar from "./UserAvatar";
 import VisibilityIcon from "./VisibilityIcon";
@@ -46,7 +47,15 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [creator, setCreator] = useState(userStore.getUserByName(memo.creator));
   const [showNSFWContent, setShowNSFWContent] = useState(props.showNsfwContent);
-  const workspaceMemoRelatedSetting = workspaceStore.state.memoRelatedSetting;
+  const [reactionSelectorOpen, setReactionSelectorOpen] = useState<boolean>(false);
+  const [previewImage, setPreviewImage] = useState<{ open: boolean; urls: string[]; index: number }>({
+    open: false,
+    urls: [],
+    index: 0,
+  });
+  const [shortcutActive, setShortcutActive] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const instanceMemoRelatedSetting = instanceStore.state.memoRelatedSetting;
   const referencedMemos = memo.relations.filter((relation) => relation.type === MemoRelation_Type.REFERENCE);
   const commentAmount = memo.relations.filter(
     (relation) => relation.type === MemoRelation_Type.COMMENT && relation.relatedMemo?.name === memo.name,
@@ -57,8 +66,8 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
   const isInMemoDetailPage = location.pathname.startsWith(`/${memo.name}`);
   const parentPage = props.parentPage || location.pathname;
   const nsfw =
-    workspaceMemoRelatedSetting.enableBlurNsfwContent &&
-    memo.tags?.some((tag) => workspaceMemoRelatedSetting.nsfwTags.some((nsfwTag) => tag === nsfwTag || tag.startsWith(`${nsfwTag}/`)));
+    instanceMemoRelatedSetting.enableBlurNsfwContent &&
+    memo.tags?.some((tag) => instanceMemoRelatedSetting.nsfwTags.some((nsfwTag) => tag === nsfwTag || tag.startsWith(`${nsfwTag}/`)));
 
   // Initial related data: creator.
   useAsyncEffect(async () => {
@@ -78,9 +87,16 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
     const targetEl = e.target as HTMLElement;
 
     if (targetEl.tagName === "IMG") {
+      // Check if the image is inside a link
+      const linkElement = targetEl.closest("a");
+      if (linkElement) {
+        // If image is inside a link, only navigate to the link (don't show preview)
+        return;
+      }
+
       const imgUrl = targetEl.getAttribute("src");
       if (imgUrl) {
-        showPreviewImageDialog([imgUrl], 0);
+        setPreviewImage({ open: true, urls: [imgUrl], index: 0 });
       }
     }
   }, []);
@@ -90,7 +106,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
       return;
     }
 
-    if (workspaceMemoRelatedSetting.enableDoubleClickEdit) {
+    if (instanceMemoRelatedSetting.enableDoubleClickEdit) {
       e.preventDefault();
       setShowEditor(true);
     }
@@ -113,10 +129,93 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
     }
   };
 
+  const archiveMemo = useCallback(async () => {
+    if (isArchived) {
+      return;
+    }
+
+    try {
+      await memoStore.updateMemo(
+        {
+          name: memo.name,
+          state: State.ARCHIVED,
+        },
+        ["state"],
+      );
+      toast.success(t("message.archived-successfully"));
+      userStore.setStatsStateId();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.details);
+    }
+  }, [isArchived, memo.name, t, memoStore, userStore]);
+
+  useEffect(() => {
+    if (!shortcutActive || readonly || showEditor || !cardRef.current) {
+      return;
+    }
+
+    const cardEl = cardRef.current;
+    const isTextInputElement = (element: HTMLElement | null) => {
+      if (!element) {
+        return false;
+      }
+      if (element.isContentEditable) {
+        return true;
+      }
+      if (element instanceof HTMLTextAreaElement) {
+        return true;
+      }
+
+      if (element instanceof HTMLInputElement) {
+        const textTypes = ["text", "search", "email", "password", "url", "tel", "number"];
+        return textTypes.includes(element.type || "text");
+      }
+
+      return false;
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!cardEl.contains(target) || isTextInputElement(target)) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (key === "e") {
+        event.preventDefault();
+        setShowEditor(true);
+      } else if (key === "a" && !isArchived) {
+        event.preventDefault();
+        archiveMemo();
+      }
+    };
+
+    cardEl.addEventListener("keydown", handleKeyDown);
+    return () => cardEl.removeEventListener("keydown", handleKeyDown);
+  }, [shortcutActive, readonly, showEditor, isArchived, archiveMemo]);
+
+  useEffect(() => {
+    if (showEditor || readonly) {
+      setShortcutActive(false);
+    }
+  }, [showEditor, readonly]);
+
+  const handleShortcutActivation = (active: boolean) => {
+    if (readonly) {
+      return;
+    }
+    setShortcutActive(active);
+  };
+
   const displayTime = isArchived ? (
-    memo.displayTime?.toLocaleString()
+    memo.displayTime?.toLocaleString(i18n.language)
   ) : (
-    <relative-time datetime={memo.displayTime?.toISOString()} format={relativeTimeFormat}></relative-time>
+    <relative-time datetime={memo.displayTime?.toISOString()} lang={i18n.language} format={relativeTimeFormat}></relative-time>
   );
 
   return showEditor ? (
@@ -131,27 +230,35 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
   ) : (
     <div
       className={cn(
-        "group relative flex flex-col justify-start items-start w-full px-4 py-3 mb-2 gap-2 bg-white dark:bg-zinc-800 rounded-lg border border-white dark:border-zinc-800 hover:border-gray-200 dark:hover:border-zinc-700",
+        "relative group flex flex-col justify-start items-start bg-card w-full px-4 py-3 mb-2 gap-2 text-card-foreground rounded-lg border border-border transition-colors",
         className,
       )}
+      ref={cardRef}
+      tabIndex={readonly ? -1 : 0}
+      onFocus={() => handleShortcutActivation(true)}
+      onBlur={() => handleShortcutActivation(false)}
     >
       <div className="w-full flex flex-row justify-between items-center gap-2">
         <div className="w-auto max-w-[calc(100%-8rem)] grow flex flex-row justify-start items-center">
           {props.showCreator && creator ? (
             <div className="w-full flex flex-row justify-start items-center">
-              <Link className="w-auto hover:opacity-80" to={`/u/${encodeURIComponent(creator.username)}`} viewTransition>
+              <Link
+                className="w-auto hover:opacity-80 rounded-md transition-colors"
+                to={`/u/${encodeURIComponent(creator.username)}`}
+                viewTransition
+              >
                 <UserAvatar className="mr-2 shrink-0" avatarUrl={creator.avatarUrl} />
               </Link>
               <div className="w-full flex flex-col justify-center items-start">
                 <Link
-                  className="w-full block leading-tight hover:opacity-80 truncate text-gray-600 dark:text-gray-400"
+                  className="block leading-tight hover:opacity-80 rounded-md transition-colors truncate text-muted-foreground"
                   to={`/u/${encodeURIComponent(creator.username)}`}
                   viewTransition
                 >
-                  {creator.nickname || creator.username}
+                  {creator.displayName || creator.username}
                 </Link>
                 <div
-                  className="w-auto -mt-0.5 text-xs leading-tight text-gray-400 dark:text-gray-500 select-none cursor-pointer"
+                  className="w-auto -mt-0.5 text-xs leading-tight text-muted-foreground select-none cursor-pointer hover:opacity-80 transition-colors"
                   onClick={handleGotoMemoDetailPage}
                 >
                   {displayTime}
@@ -160,7 +267,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
             </div>
           ) : (
             <div
-              className="w-full text-sm leading-tight text-gray-400 dark:text-gray-500 select-none cursor-pointer"
+              className="w-full text-sm leading-tight text-muted-foreground select-none cursor-pointer hover:text-foreground transition-colors"
               onClick={handleGotoMemoDetailPage}
             >
               {displayTime}
@@ -168,20 +275,17 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
           )}
         </div>
         <div className="flex flex-row justify-end items-center select-none shrink-0 gap-2">
-          <div className="w-auto invisible group-hover:visible flex flex-row justify-between items-center gap-2">
-            {props.showVisibility && memo.visibility !== Visibility.PRIVATE && (
-              <Tooltip title={t(`memo.visibility.${convertVisibilityToString(memo.visibility).toLowerCase()}` as any)} placement="top">
-                <span className="flex justify-center items-center hover:opacity-70">
-                  <VisibilityIcon visibility={memo.visibility} />
-                </span>
-              </Tooltip>
-            )}
-            {currentUser && !isArchived && <ReactionSelector className="border-none w-auto h-auto" memo={memo} />}
-          </div>
-          {!isInMemoDetailPage && (workspaceMemoRelatedSetting.enableComment || commentAmount > 0) && (
+          {currentUser && !isArchived && (
+            <ReactionSelector
+              className={cn("border-none w-auto h-auto", reactionSelectorOpen && "!block", "hidden group-hover:block")}
+              memo={memo}
+              onOpenChange={setReactionSelectorOpen}
+            />
+          )}
+          {!isInMemoDetailPage && (
             <Link
               className={cn(
-                "flex flex-row justify-start items-center hover:opacity-70",
+                "flex flex-row justify-start items-center rounded-md p-1 hover:opacity-80",
                 commentAmount === 0 && "invisible group-hover:visible",
               )}
               to={`/${memo.name}#comments`}
@@ -190,23 +294,40 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
                 from: parentPage,
               }}
             >
-              <MessageCircleMoreIcon className="w-4 h-4 mx-auto text-gray-500 dark:text-gray-400" />
-              {commentAmount > 0 && <span className="text-xs text-gray-500 dark:text-gray-400">{commentAmount}</span>}
+              <MessageCircleMoreIcon className="w-4 h-4 mx-auto text-muted-foreground" />
+              {commentAmount > 0 && <span className="text-xs text-muted-foreground">{commentAmount}</span>}
             </Link>
           )}
-          {props.showPinned && memo.pinned && (
-            <Tooltip title={t("common.unpin")} placement="top">
-              <span className="cursor-pointer">
-                <BookmarkIcon className="w-4 h-auto text-amber-500" onClick={onPinIconClick} />
-              </span>
+          {props.showVisibility && memo.visibility !== Visibility.PRIVATE && (
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="flex justify-center items-center rounded-md hover:opacity-80">
+                  <VisibilityIcon visibility={memo.visibility} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t(`memo.visibility.${convertVisibilityToString(memo.visibility).toLowerCase()}` as any)}</TooltipContent>
             </Tooltip>
+          )}
+          {props.showPinned && memo.pinned && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-pointer">
+                    <BookmarkIcon className="w-4 h-auto text-primary" onClick={onPinIconClick} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t("common.unpin")}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           {nsfw && showNSFWContent && (
             <span className="cursor-pointer">
-              <EyeOffIcon className="w-4 h-auto text-amber-500" onClick={() => setShowNSFWContent(false)} />
+              <EyeOffIcon className="w-4 h-auto text-primary" onClick={() => setShowNSFWContent(false)} />
             </span>
           )}
-          <MemoActionMenu className="-ml-1" memo={memo} readonly={readonly} onEdit={() => setShowEditor(true)} />
+          <MemoActionMenu memo={memo} readonly={readonly} onEdit={() => setShowEditor(true)} />
         </div>
       </div>
       <div
@@ -218,29 +339,36 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
         <MemoContent
           key={`${memo.name}-${memo.updateTime}`}
           memoName={memo.name}
-          nodes={memo.nodes}
+          content={memo.content}
           readonly={readonly}
           onClick={handleMemoContentClick}
           onDoubleClick={handleMemoContentDoubleClick}
           compact={memo.pinned ? false : props.compact} // Always show full content when pinned.
           parentPage={parentPage}
         />
-        {memo.location && <MemoLocationView location={memo.location} />}
-        <MemoResourceListView resources={memo.resources} />
-        <MemoRelationListView memo={memo} relations={referencedMemos} parentPage={parentPage} />
+        {memo.location && <LocationDisplay mode="view" location={memo.location} />}
+        <AttachmentList attachments={memo.attachments} />
+        <RelationList mode="view" relations={referencedMemos} currentMemoName={memo.name} parentPage={parentPage} />
         <MemoReactionistView memo={memo} reactions={memo.reactions} />
       </div>
       {nsfw && !showNSFWContent && (
         <>
           <div className="absolute inset-0 bg-transparent" />
           <button
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 py-2 px-4 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-zinc-800"
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 py-2 px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-accent hover:border-accent border border-border rounded-lg bg-card transition-colors"
             onClick={() => setShowNSFWContent(true)}
           >
             {t("memo.click-to-show-nsfw-content")}
           </button>
         </>
       )}
+
+      <PreviewImageDialog
+        open={previewImage.open}
+        onOpenChange={(open) => setPreviewImage((prev) => ({ ...prev, open }))}
+        imgUrls={previewImage.urls}
+        initialIndex={previewImage.index}
+      />
     </div>
   );
 });

@@ -35,7 +35,8 @@ func (d *DB) UpsertReaction(ctx context.Context, upsert *store.Reaction) (*store
 }
 
 func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*store.Reaction, error) {
-	where, args := []string{"1 = 1"}, []interface{}{}
+	where, args := []string{"1 = 1"}, []any{}
+
 	if find.ID != nil {
 		where, args = append(where, "`id` = ?"), append(args, *find.ID)
 	}
@@ -44,6 +45,14 @@ func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*st
 	}
 	if find.ContentID != nil {
 		where, args = append(where, "`content_id` = ?"), append(args, *find.ContentID)
+	}
+	if len(find.ContentIDList) > 0 {
+		placeholders := make([]string, 0, len(find.ContentIDList))
+		for _, id := range find.ContentIDList {
+			placeholders = append(placeholders, "?")
+			args = append(args, id)
+		}
+		where = append(where, "`content_id` IN ("+strings.Join(placeholders, ",")+")")
 	}
 
 	rows, err := d.db.QueryContext(ctx, `

@@ -1,4 +1,4 @@
-package teststore
+package test
 
 import (
 	"context"
@@ -13,5 +13,5 @@ func TestGetCurrentSchemaVersion(t *testing.T) {
 
 	currentSchemaVersion, err := ts.GetCurrentSchemaVersion()
 	require.NoError(t, err)
-	require.Equal(t, "0.24.2", currentSchemaVersion)
+	require.Equal(t, "0.25.1", currentSchemaVersion)
 }

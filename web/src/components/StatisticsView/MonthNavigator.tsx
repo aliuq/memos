@@ -1,9 +1,10 @@
 import dayjs from "dayjs";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { observer } from "mobx-react-lite";
 import i18n from "@/i18n";
 import type { MonthNavigatorProps } from "@/types/statistics";
 
-export const MonthNavigator = ({ visibleMonth, onMonthChange }: MonthNavigatorProps) => {
+export const MonthNavigator = observer(({ visibleMonth, onMonthChange }: MonthNavigatorProps) => {
   const currentMonth = dayjs(visibleMonth).toDate();
 
   const handlePrevMonth = () => {
@@ -16,7 +17,7 @@ export const MonthNavigator = ({ visibleMonth, onMonthChange }: MonthNavigatorPr
 
   return (
     <div className="w-full mb-1 flex flex-row justify-between items-center gap-1">
-      <span className="relative text-sm dark:text-gray-400">
+      <span className="relative text-sm text-muted-foreground">
         {currentMonth.toLocaleString(i18n.language, { year: "numeric", month: "long" })}
       </span>
       <div className="flex justify-end items-center shrink-0 gap-1">
@@ -29,4 +30,4 @@ export const MonthNavigator = ({ visibleMonth, onMonthChange }: MonthNavigatorPr
       </div>
     </div>
   );
-};
+});

@@ -1,22 +1,18 @@
-import { ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VisibilityIcon from "@/components/VisibilityIcon";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover";
 import { Visibility } from "@/types/proto/api/v1/memo_service";
-import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 
 interface Props {
   value: Visibility;
   onChange: (visibility: Visibility) => void;
   onOpenChange?: (open: boolean) => void;
-  className?: string;
 }
 
 const VisibilitySelector = (props: Props) => {
   const { value, onChange } = props;
   const t = useTranslate();
-  const [open, setOpen] = useState(false);
 
   const visibilityOptions = [
     { value: Visibility.PRIVATE, label: t("memo.visibility.private") },
@@ -24,52 +20,27 @@ const VisibilitySelector = (props: Props) => {
     { value: Visibility.PUBLIC, label: t("memo.visibility.public") },
   ];
 
-  const currentOption = visibilityOptions.find((option) => option.value === value);
-
-  const handleSelect = (visibility: Visibility) => {
-    onChange(visibility);
-    handleOpenChange(false);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setOpen(open);
-    if (props.onOpenChange) {
-      props.onOpenChange(open);
-    }
-  };
+  const currentLabel = visibilityOptions.find((option) => option.value === value)?.label || "";
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          className={cn(
-            `flex items-center justify-center gap-1 px-0.5 text-xs rounded hover:bg-gray-100 dark:hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 transition-colors`,
-            props.className,
-          )}
-          type="button"
-        >
-          <VisibilityIcon className="w-3 h-3" visibility={value} />
-          <span className="hidden sm:inline">{currentOption?.label}</span>
-          <ChevronDownIcon className="w-3 h-3 opacity-60" />
+    <DropdownMenu onOpenChange={props.onOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button className="inline-flex items-center px-2 text-sm text-muted-foreground opacity-80 hover:opacity-100 transition-colors">
+          <VisibilityIcon visibility={value} className="opacity-60 mr-1.5" />
+          <span>{currentLabel}</span>
+          <ChevronDownIcon className="ml-0.5 w-4 h-4 opacity-60" />
         </button>
-      </PopoverTrigger>
-      <PopoverContent className="!p-1" align="end" sideOffset={2} alignOffset={-4}>
-        <div className="flex flex-col gap-0.5">
-          {visibilityOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-              className={`flex items-center gap-1 px-1 py-1 text-xs text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded transition-colors ${
-                option.value === value ? "bg-gray-50 dark:bg-zinc-800" : ""
-              }`}
-            >
-              <VisibilityIcon className="w-3 h-3" visibility={option.value} />
-              <span>{option.label}</span>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {visibilityOptions.map((option) => (
+          <DropdownMenuItem key={option.value} className="cursor-pointer gap-2" onClick={() => onChange(option.value)}>
+            <VisibilityIcon visibility={option.value} />
+            <span className="flex-1">{option.label}</span>
+            {value === option.value && <CheckIcon className="w-4 h-4 text-primary" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

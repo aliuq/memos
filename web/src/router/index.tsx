@@ -1,7 +1,7 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import App from "@/App";
-import HomeLayout from "@/layouts/HomeLayout";
+import MainLayout from "@/layouts/MainLayout";
 import RootLayout from "@/layouts/RootLayout";
 import Home from "@/pages/Home";
 import Loading from "@/pages/Loading";
@@ -14,7 +14,7 @@ const Inboxes = lazy(() => import("@/pages/Inboxes"));
 const MemoDetail = lazy(() => import("@/pages/MemoDetail"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PermissionDenied = lazy(() => import("@/pages/PermissionDenied"));
-const Resources = lazy(() => import("@/pages/Resources"));
+const Attachments = lazy(() => import("@/pages/Attachments"));
 const Setting = lazy(() => import("@/pages/Setting"));
 const SignIn = lazy(() => import("@/pages/SignIn"));
 const SignUp = lazy(() => import("@/pages/SignUp"));
@@ -23,7 +23,7 @@ const MemoDetailRedirect = lazy(() => import("./MemoDetailRedirect"));
 
 export enum Routes {
   ROOT = "/",
-  RESOURCES = "/resources",
+  ATTACHMENTS = "/attachments",
   INBOX = "/inbox",
   ARCHIVED = "/archived",
   SETTING = "/setting",
@@ -78,11 +78,19 @@ const router = createBrowserRouter([
         element: <RootLayout />,
         children: [
           {
-            element: <HomeLayout />,
+            element: <MainLayout />,
             children: [
               {
                 path: "",
                 element: <Home />,
+              },
+              {
+                path: Routes.EXPLORE,
+                element: (
+                  <Suspense fallback={<Loading />}>
+                    <Explore />
+                  </Suspense>
+                ),
               },
               {
                 path: Routes.ARCHIVED,
@@ -103,18 +111,10 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: Routes.EXPLORE,
+            path: Routes.ATTACHMENTS,
             element: (
               <Suspense fallback={<Loading />}>
-                <Explore />
-              </Suspense>
-            ),
-          },
-          {
-            path: Routes.RESOURCES,
-            element: (
-              <Suspense fallback={<Loading />}>
-                <Resources />
+                <Attachments />
               </Suspense>
             ),
           },

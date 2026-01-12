@@ -1,0 +1,35 @@
+@reference "tailwindcss";
+
+.pswp .pswp__top-bar {
+  @apply backdrop-blur-sm bg-black/30;
+}
+
+.pswp .pswp__top-bar .pswp__caption {
+  height: 30px;
+  margin-top: 15px;
+  font-size: 14px;
+  line-height: 30px;
+  color: var(--pswp-icon-color);
+  text-shadow: 1px 1px 3px var(--pswp-icon-color-secondary);
+  opacity: 0.85;
+  @apply inline-block! absolute left-1/2 -translate-x-1/2 select-none max-w-[50%] text-ellipsis overflow-hidden whitespace-nowrap;
+}
+
+@media (max-width: 640px) {
+  .pswp .pswp__top-bar {
+    height: 50px;
+  }
+  .pswp .pswp__top-bar > [class^="pswp__"] {
+    margin-top: 10px;
+  }
+}
+
+.pswp.pswp--one-slide .pswp__caption {
+  @apply max-w-[70%];
+}
+
+@media (max-width: 640px) {
+  .pswp.pswp--one-slide .pswp__caption {
+    @apply max-w-[80%];
+  }
+}

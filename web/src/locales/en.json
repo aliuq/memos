@@ -18,8 +18,11 @@
     "about": "About",
     "add": "Add",
     "admin": "Admin",
+    "all": "All",
     "archive": "Archive",
     "archived": "Archived",
+    "attachments": "Attachments",
+    "auto-expand": "Auto expand",
     "avatar": "Avatar",
     "basic": "Basic",
     "beta": "Beta",
@@ -29,6 +32,7 @@
     "close": "Close",
     "collapse": "Collapse",
     "confirm": "Confirm",
+    "copy": "Copy",
     "create": "Create",
     "created-at": "Created At",
     "database": "Database",
@@ -98,7 +102,8 @@
     "username": "Username",
     "version": "Version",
     "visibility": "Visibility",
-    "yourself": "Yourself"
+    "yourself": "Yourself",
+    "more": "More"
   },
   "days": {
     "fri": "Fri",
@@ -112,7 +117,10 @@
   "editor": {
     "add-your-comment-here": "Add your comment here...",
     "any-thoughts": "Any thoughts...",
-    "save": "Save"
+    "save": "Save",
+    "no-changes-detected": "No changes detected",
+    "focus-mode": "Focus Mode",
+    "exit-focus-mode": "Exit Focus Mode"
   },
   "filters": {
     "has-code": "hasCode",
@@ -121,7 +129,10 @@
   },
   "inbox": {
     "memo-comment": "{{user}} has a comment on your {{memo}}.",
-    "version-update": "New version {{version}} is available now!"
+    "failed-to-load": "Failed to load inbox item",
+    "unread": "Unread",
+    "no-unread": "No unread notifications",
+    "no-archived": "No archived notifications"
   },
   "markdown": {
     "checkbox": "Checkbox",
@@ -137,9 +148,11 @@
       "self": "Comments",
       "write-a-comment": "Write a comment"
     },
+    "copy-content": "Copy Content",
     "copy-link": "Copy Link",
     "count-memos-in-date": "{{count}} {{memos}} in {{date}}",
-    "delete-confirm": "Are you sure you want to delete this memo? THIS ACTION IS IRREVERSIBLE",
+    "delete-confirm": "Are you sure you want to delete this memo?",
+    "delete-confirm-description": "This action is irreversible. Attachments, links, and references will also be removed.",
     "direction": "Direction",
     "direction-asc": "Ascending",
     "direction-desc": "Descending",
@@ -160,7 +173,7 @@
     "visibility": {
       "disabled": "Public memos are disabled",
       "private": "Private",
-      "protected": "Workspace",
+      "protected": "Protected",
       "public": "Public"
     },
     "list": "List",
@@ -170,7 +183,7 @@
     "archived-successfully": "Archived successfully",
     "change-memo-created-time": "Change memo created time",
     "copied": "Copied",
-    "deleted-successfully": "Deleted successfully",
+    "deleted-successfully": "Memo deleted successfully",
     "description-is-required": "Description is required",
     "failed-to-embed-memo": "Failed to embed memo",
     "fill-all": "Please fill in all fields.",
@@ -183,6 +196,7 @@
     "password-not-match": "Passwords do not match.",
     "remove-completed-task-list-items-successfully": "The removal was successful",
     "restored-successfully": "Restored successfully",
+    "succeed-copy-content": "Content copied successfully.",
     "succeed-copy-link": "Link copied successfully.",
     "update-succeed": "Update succeeded",
     "user-not-found": "User not found"
@@ -215,6 +229,10 @@
     },
     "delete-resource": "Delete Resource",
     "delete-selected-resources": "Delete Selected Resources",
+    "delete-all-unused": "Delete all unused",
+    "delete-all-unused-confirm": "Are you sure you want to delete all unused resources? THIS ACTION IS IRREVERSIBLE",
+    "delete-all-unused-success": "Resources deleted successfully",
+    "delete-all-unused-error": "Failed to delete unused resources",
     "fetching-data": "Fetching data…",
     "file-drag-drop-prompt": "Drag and drop your file here to upload file",
     "linked-amount": "Linked amount",
@@ -222,7 +240,7 @@
     "no-resources": "No resources.",
     "no-unused-resources": "No unused resources",
     "reset-link": "Reset Link",
-    "reset-link-prompt": "Are you sure to reset the link? This will break all current link usages. THIS ACTION IS IRREVERSIBLE",
+    "reset-link-prompt": "Are you sure you want to reset the link? This will break all current link usages. THIS ACTION IS IRREVERSIBLE",
     "reset-resource-link": "Reset Resource Link",
     "unused-resources": "Unused resources"
   },
@@ -233,8 +251,11 @@
   "setting": {
     "access-token-section": {
       "access-token-copied-to-clipboard": "Access token copied to clipboard",
-      "access-token-deletion": "Are you sure to delete access token {{accessToken}}? THIS ACTION IS IRREVERSIBLE.",
+      "access-token-deletion": "Are you sure you want to delete access token `{{description}}`?",
+      "access-token-deletion-description": "This action is irreversible. You will need to update any services using this token to use a new token.",
+      "access-token-deleted": "Access token `{{description}}` deleted",
       "create-dialog": {
+        "access-token-created": "Access token `{{description}}` created",
         "create-access-token": "Create Access Token",
         "created-at": "Created At",
         "description": "Description",
@@ -249,6 +270,23 @@
       "title": "Access Tokens",
       "token": "Token"
     },
+    "user-sessions-section": {
+      "title": "Active Sessions",
+      "description": "A list of all active sessions for your account. Sessions automatically expire 2 weeks after the last activity. You can revoke any session except the current one.",
+      "device": "Device",
+      "location": "Location",
+      "last-active": "Last Active",
+      "expires": "Expires",
+      "current": "Current",
+      "never": "Never",
+      "session-revocation": "Are you sure you want to revoke session `{{sessionId}}`?",
+      "session-revocation-description": "You will need to sign in again on that device.",
+      "session-revoked": "Session revoked successfully",
+      "revoke-session": "Revoke session",
+      "revoke-session-button": "Revoke",
+      "cannot-revoke-current": "Cannot revoke current session",
+      "no-sessions": "No active sessions found"
+    },
     "account-section": {
       "change-password": "Change password",
       "email-note": "Optional",
@@ -262,20 +300,20 @@
       "update-information": "Update Information",
       "username-note": "Used to sign in"
     },
-    "appearance-option": {
-      "dark": "Always dark",
-      "light": "Always light",
-      "system": "Follow system"
-    },
     "member": "Member",
     "member-list": "Member list",
     "member-section": {
       "admin": "Admin",
       "archive-member": "Archive member",
-      "archive-warning": "Are you sure to archive {{username}}?",
+      "archive-warning": "Are you sure you want to archive {{username}}?",
+      "archive-warning-description": "Archiving disables the account. You can restore or delete it later.",
+      "archive-success": "{{username}} archived successfully",
+      "restore-success": "{{username}} restored successfully",
       "create-a-member": "Create a member",
       "delete-member": "Delete Member",
-      "delete-warning": "Are you sure to delete {{username}}? THIS ACTION IS IRREVERSIBLE",
+      "delete-warning": "Are you sure you want to delete {{username}}?",
+      "delete-warning-description": "THIS ACTION IS IRREVERSIBLE",
+      "delete-success": "{{username}} deleted successfully",
       "user": "User"
     },
     "memo-related": "Memo",
@@ -295,12 +333,16 @@
       "default-memo-visibility": "Default memo visibility",
       "theme": "Theme"
     },
+    "shortcut": {
+      "delete-confirm": "Are you sure you want to delete shortcut `{{title}}`?",
+      "delete-success": "Shortcut `{{title}}` deleted successfully"
+    },
     "sso": "SSO",
     "sso-section": {
       "authorization-endpoint": "Authorization endpoint",
       "client-id": "Client ID",
       "client-secret": "Client secret",
-      "confirm-delete": "Are you sure to delete \"{{name}}\" SSO configuration? THIS ACTION IS IRREVERSIBLE",
+      "confirm-delete": "Are you sure you want to delete `{{name}}` SSO configuration? THIS ACTION IS IRREVERSIBLE",
       "create-sso": "Create SSO",
       "custom": "Custom",
       "delete-sso": "Confirm delete",
@@ -353,7 +395,7 @@
       "url-prefix-placeholder": "Custom URL prefix, optional",
       "url-suffix": "URL suffix",
       "url-suffix-placeholder": "Custom URL suffix, optional",
-      "warning-text": "Are you sure to delete storage service \"{{name}}\"? THIS ACTION IS IRREVERSIBLE"
+      "warning-text": "Are you sure you want to delete storage service `{{name}}`? THIS ACTION IS IRREVERSIBLE"
     },
     "system": "System",
     "system-section": {
@@ -363,7 +405,6 @@
       "additional-style-placeholder": "Additional CSS code",
       "allow-user-signup": "Allow user signup",
       "customize-server": {
-        "appearance": "Server Appearance",
         "description": "Description",
         "icon-url": "Icon URL",
         "locale": "Server Locale",
@@ -371,7 +412,7 @@
       },
       "disable-markdown-shortcuts-in-editor": "Disable Markdown shortcuts in editor",
       "disable-password-login": "Disable password login",
-      "disable-password-login-final-warning": "Please type \"CONFIRM\" if you know what you are doing.",
+      "disable-password-login-final-warning": "Please type `CONFIRM` if you know what you are doing.",
       "disable-password-login-warning": "This will disable password login for all users. It is not possible to log in without reverting this setting in the database if your configured identity providers fail. You’ll also have to be extra careful when removing an identity provider",
       "disable-public-memos": "Disable public memos",
       "display-with-updated-time": "Display with updated time",
@@ -390,16 +431,22 @@
       "create-dialog": {
         "an-easy-to-remember-name": "An easy-to-remember name",
         "create-webhook": "Create webhook",
+        "create-webhook-success": "Webhook `{{name}}` created",
         "edit-webhook": "Edit webhook",
         "payload-url": "Payload URL",
         "title": "Title",
         "url-example-post-receive": "https://example.com/postreceive"
       },
+      "delete-dialog": {
+        "delete-webhook-description": "This action is irreversible.",
+        "delete-webhook-title": "Are you sure you want to delete webhook `{{name}}`?",
+        "delete-webhook-success": "Webhook `{{name}}` deleted successfully"
+      },
       "no-webhooks-found": "No webhooks found.",
       "title": "Webhooks",
       "url": "URL"
     },
-    "workspace-section": {
+    "instance-section": {
       "disallow-change-nickname": "Disallow changing nickname",
       "disallow-change-username": "Disallow changing username",
       "disallow-password-auth": "Disallow password auth",
@@ -414,8 +461,9 @@
     "all-tags": "All Tags",
     "create-tag": "Create Tag",
     "create-tags-guide": "You can create tags by inputting `#tag`.",
-    "delete-confirm": "Are you sure to delete this tag? All related memos will be archived.",
+    "delete-confirm": "Are you sure you want to delete this tag? All related memos will be archived.",
     "delete-tag": "Delete Tag",
+    "delete-success": "Tag deleted successfully",
     "new-name": "New Name",
     "no-tag-found": "No tag found",
     "old-name": "Old Name",
@@ -424,5 +472,13 @@
     "rename-success": "Renamed tag successfully",
     "rename-tag": "Rename tag",
     "rename-tip": "All your memos with this tag will be updated."
+  },
+  "tooltip": {
+    "link-memo": "Link Memo",
+    "markdown-menu": "Markdown",
+    "select-location": "Location",
+    "select-visibility": "Visibility",
+    "tags": "Tags",
+    "upload-attachment": "Upload Attachment(s)"
   }
 }

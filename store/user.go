@@ -22,10 +22,9 @@ func (e Role) String() string {
 		return "HOST"
 	case RoleAdmin:
 		return "ADMIN"
-	case RoleUser:
+	default:
 		return "USER"
 	}
-	return "USER"
 }
 
 const (
@@ -82,6 +81,9 @@ type FindUser struct {
 	Role      *Role
 	Email     *string
 	Nickname  *string
+
+	// Domain specific fields
+	Filters []string
 
 	// The maximum number of users to return.
 	Limit *int

@@ -1,26 +1,18 @@
 import { observer } from "mobx-react-lite";
-import { workspaceStore } from "@/store/v2";
-import { cn } from "@/utils";
-import AppearanceSelect from "./AppearanceSelect";
+import { cn } from "@/lib/utils";
+import { instanceStore } from "@/store";
 import LocaleSelect from "./LocaleSelect";
+import ThemeSelect from "./ThemeSelect";
 
 interface Props {
   className?: string;
 }
 
 const AuthFooter = observer(({ className }: Props) => {
-  const handleLocaleSelectChange = (locale: Locale) => {
-    workspaceStore.state.setPartial({ locale });
-  };
-
-  const handleAppearanceSelectChange = (appearance: Appearance) => {
-    workspaceStore.state.setPartial({ appearance });
-  };
-
   return (
     <div className={cn("mt-4 flex flex-row items-center justify-center w-full gap-2", className)}>
-      <LocaleSelect value={workspaceStore.state.locale} onChange={handleLocaleSelectChange} />
-      <AppearanceSelect value={workspaceStore.state.appearance as Appearance} onChange={handleAppearanceSelectChange} />
+      <LocaleSelect value={instanceStore.state.locale} onChange={(locale) => instanceStore.state.setPartial({ locale })} />
+      <ThemeSelect value={instanceStore.state.theme} onValueChange={(theme) => instanceStore.state.setPartial({ theme })} />
     </div>
   );
 });

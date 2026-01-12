@@ -13,18 +13,23 @@ export const protobufPackage = "memos.api.v1";
 
 export interface IdentityProvider {
   /**
-   * The name of the identityProvider.
-   * Format: identityProviders/{id}, id is the system generated auto-incremented id.
+   * The resource name of the identity provider.
+   * Format: identity-providers/{idp}
    */
   name: string;
+  /** Required. The type of the identity provider. */
   type: IdentityProvider_Type;
+  /** Required. The display title of the identity provider. */
   title: string;
+  /** Optional. Filter applied to user identifiers. */
   identifierFilter: string;
+  /** Required. Configuration for the identity provider. */
   config?: IdentityProviderConfig | undefined;
 }
 
 export enum IdentityProvider_Type {
   TYPE_UNSPECIFIED = "TYPE_UNSPECIFIED",
+  /** OAUTH2 - OAuth2 identity provider. */
   OAUTH2 = "OAUTH2",
   UNRECOGNIZED = "UNRECOGNIZED",
 }
@@ -81,33 +86,47 @@ export interface ListIdentityProvidersRequest {
 }
 
 export interface ListIdentityProvidersResponse {
+  /** The list of identity providers. */
   identityProviders: IdentityProvider[];
 }
 
 export interface GetIdentityProviderRequest {
-  /** The name of the identityProvider to get. */
+  /**
+   * Required. The resource name of the identity provider to get.
+   * Format: identity-providers/{idp}
+   */
   name: string;
 }
 
 export interface CreateIdentityProviderRequest {
-  /** The identityProvider to create. */
-  identityProvider?: IdentityProvider | undefined;
-}
-
-export interface UpdateIdentityProviderRequest {
-  /** The identityProvider to update. */
+  /** Required. The identity provider to create. */
   identityProvider?:
     | IdentityProvider
     | undefined;
   /**
-   * The update mask applies to the resource. Only the top level fields of
+   * Optional. The ID to use for the identity provider, which will become the final component of the resource name.
+   * If not provided, the system will generate one.
+   */
+  identityProviderId: string;
+}
+
+export interface UpdateIdentityProviderRequest {
+  /** Required. The identity provider to update. */
+  identityProvider?:
+    | IdentityProvider
+    | undefined;
+  /**
+   * Required. The update mask applies to the resource. Only the top level fields of
    * IdentityProvider are supported.
    */
   updateMask?: string[] | undefined;
 }
 
 export interface DeleteIdentityProviderRequest {
-  /** The name of the identityProvider to delete. */
+  /**
+   * Required. The resource name of the identity provider to delete.
+   * Format: identity-providers/{idp}
+   */
   name: string;
 }
 
@@ -592,13 +611,16 @@ export const GetIdentityProviderRequest: MessageFns<GetIdentityProviderRequest> 
 };
 
 function createBaseCreateIdentityProviderRequest(): CreateIdentityProviderRequest {
-  return { identityProvider: undefined };
+  return { identityProvider: undefined, identityProviderId: "" };
 }
 
 export const CreateIdentityProviderRequest: MessageFns<CreateIdentityProviderRequest> = {
   encode(message: CreateIdentityProviderRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.identityProvider !== undefined) {
       IdentityProvider.encode(message.identityProvider, writer.uint32(10).fork()).join();
+    }
+    if (message.identityProviderId !== "") {
+      writer.uint32(18).string(message.identityProviderId);
     }
     return writer;
   },
@@ -618,6 +640,14 @@ export const CreateIdentityProviderRequest: MessageFns<CreateIdentityProviderReq
           message.identityProvider = IdentityProvider.decode(reader, reader.uint32());
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.identityProviderId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -635,6 +665,7 @@ export const CreateIdentityProviderRequest: MessageFns<CreateIdentityProviderReq
     message.identityProvider = (object.identityProvider !== undefined && object.identityProvider !== null)
       ? IdentityProvider.fromPartial(object.identityProvider)
       : undefined;
+    message.identityProviderId = object.identityProviderId ?? "";
     return message;
   },
 };
@@ -761,9 +792,9 @@ export const IdentityProviderServiceDefinition = {
         _unknownFields: {
           578365826: [
             new Uint8Array([
-              27,
+              28,
               18,
-              25,
+              26,
               47,
               97,
               112,
@@ -780,7 +811,8 @@ export const IdentityProviderServiceDefinition = {
               105,
               116,
               121,
-              80,
+              45,
+              112,
               114,
               111,
               118,
@@ -806,9 +838,9 @@ export const IdentityProviderServiceDefinition = {
           8410: [new Uint8Array([4, 110, 97, 109, 101])],
           578365826: [
             new Uint8Array([
-              36,
+              37,
               18,
-              34,
+              35,
               47,
               97,
               112,
@@ -831,7 +863,8 @@ export const IdentityProviderServiceDefinition = {
               105,
               116,
               121,
-              80,
+              45,
+              112,
               114,
               111,
               118,
@@ -857,9 +890,12 @@ export const IdentityProviderServiceDefinition = {
       responseStream: false,
       options: {
         _unknownFields: {
+          8410: [
+            new Uint8Array([17, 105, 100, 101, 110, 116, 105, 116, 121, 95, 112, 114, 111, 118, 105, 100, 101, 114]),
+          ],
           578365826: [
             new Uint8Array([
-              46,
+              47,
               58,
               17,
               105,
@@ -880,7 +916,7 @@ export const IdentityProviderServiceDefinition = {
               101,
               114,
               34,
-              25,
+              26,
               47,
               97,
               112,
@@ -897,7 +933,8 @@ export const IdentityProviderServiceDefinition = {
               105,
               116,
               121,
-              80,
+              45,
+              112,
               114,
               111,
               118,
@@ -956,7 +993,7 @@ export const IdentityProviderServiceDefinition = {
           ],
           578365826: [
             new Uint8Array([
-              73,
+              74,
               58,
               17,
               105,
@@ -977,7 +1014,7 @@ export const IdentityProviderServiceDefinition = {
               101,
               114,
               50,
-              52,
+              53,
               47,
               97,
               112,
@@ -1018,7 +1055,8 @@ export const IdentityProviderServiceDefinition = {
               105,
               116,
               121,
-              80,
+              45,
+              112,
               114,
               111,
               118,
@@ -1047,9 +1085,9 @@ export const IdentityProviderServiceDefinition = {
           8410: [new Uint8Array([4, 110, 97, 109, 101])],
           578365826: [
             new Uint8Array([
-              36,
+              37,
               42,
-              34,
+              35,
               47,
               97,
               112,
@@ -1072,7 +1110,8 @@ export const IdentityProviderServiceDefinition = {
               105,
               116,
               121,
-              80,
+              45,
+              112,
               114,
               111,
               118,

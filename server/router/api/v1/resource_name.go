@@ -10,13 +10,15 @@ import (
 )
 
 const (
-	WorkspaceSettingNamePrefix = "settings/"
+	InstanceSettingNamePrefix  = "instance/settings/"
 	UserNamePrefix             = "users/"
 	MemoNamePrefix             = "memos/"
-	ResourceNamePrefix         = "resources/"
+	AttachmentNamePrefix       = "attachments/"
+	ReactionNamePrefix         = "reactions/"
 	InboxNamePrefix            = "inboxes/"
-	IdentityProviderNamePrefix = "identityProviders/"
+	IdentityProviderNamePrefix = "identity-providers/"
 	ActivityNamePrefix         = "activities/"
+	WebhookNamePrefix          = "webhooks/"
 )
 
 // GetNameParentTokens returns the tokens from a resource name.
@@ -39,12 +41,23 @@ func GetNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 	return tokens, nil
 }
 
-func ExtractWorkspaceSettingKeyFromName(name string) (string, error) {
-	tokens, err := GetNameParentTokens(name, WorkspaceSettingNamePrefix)
-	if err != nil {
-		return "", err
+func ExtractInstanceSettingKeyFromName(name string) (string, error) {
+	const prefix = "instance/settings/"
+	if !strings.HasPrefix(name, prefix) {
+		return "", errors.Errorf("invalid instance setting name: expected prefix %q, got %q", prefix, name)
 	}
-	return tokens[0], nil
+
+	settingKey := strings.TrimPrefix(name, prefix)
+	if settingKey == "" {
+		return "", errors.Errorf("invalid instance setting name: empty setting key in %q", name)
+	}
+
+	// Ensure there are no additional path segments
+	if strings.Contains(settingKey, "/") {
+		return "", errors.Errorf("invalid instance setting name: setting key cannot contain '/' in %q", name)
+	}
+
+	return settingKey, nil
 }
 
 // ExtractUserIDFromName returns the uid from a resource name.
@@ -60,6 +73,17 @@ func ExtractUserIDFromName(name string) (int32, error) {
 	return id, nil
 }
 
+// extractUserIdentifierFromName extracts the identifier (ID or username) from a user resource name.
+// Supports: "users/101" or "users/steven"
+// Returns the identifier string (e.g., "101" or "steven").
+func extractUserIdentifierFromName(name string) string {
+	tokens, err := GetNameParentTokens(name, UserNamePrefix)
+	if err != nil || len(tokens) == 0 {
+		return ""
+	}
+	return tokens[0]
+}
+
 // ExtractMemoUIDFromName returns the memo UID from a resource name.
 // e.g., "memos/uuid" -> "uuid".
 func ExtractMemoUIDFromName(name string) (string, error) {
@@ -71,13 +95,27 @@ func ExtractMemoUIDFromName(name string) (string, error) {
 	return id, nil
 }
 
-// ExtractResourceUIDFromName returns the resource UID from a resource name.
-func ExtractResourceUIDFromName(name string) (string, error) {
-	tokens, err := GetNameParentTokens(name, ResourceNamePrefix)
+// ExtractAttachmentUIDFromName returns the attachment UID from a resource name.
+func ExtractAttachmentUIDFromName(name string) (string, error) {
+	tokens, err := GetNameParentTokens(name, AttachmentNamePrefix)
 	if err != nil {
 		return "", err
 	}
 	id := tokens[0]
+	return id, nil
+}
+
+// ExtractReactionIDFromName returns the reaction ID from a resource name.
+// e.g., "reactions/123" -> 123.
+func ExtractReactionIDFromName(name string) (int32, error) {
+	tokens, err := GetNameParentTokens(name, ReactionNamePrefix)
+	if err != nil {
+		return 0, err
+	}
+	id, err := util.ConvertStringToInt32(tokens[0])
+	if err != nil {
+		return 0, errors.Errorf("invalid reaction ID %q", tokens[0])
+	}
 	return id, nil
 }
 

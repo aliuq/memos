@@ -8,21 +8,18 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/usememos/gomark/parser"
-	"github.com/usememos/gomark/parser/tokenizer"
-
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
 )
 
-func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Memo) (*v1pb.Memo, error) {
+func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Memo, reactions []*store.Reaction, attachments []*store.Attachment) (*v1pb.Memo, error) {
 	displayTs := memo.CreatedTs
-	workspaceMemoRelatedSetting, err := s.Store.GetWorkspaceMemoRelatedSetting(ctx)
+	instanceMemoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get workspace memo related setting")
+		return nil, errors.Wrap(err, "failed to get instance memo related setting")
 	}
-	if workspaceMemoRelatedSetting.DisplayWithUpdateTime {
+	if instanceMemoRelatedSetting.DisplayWithUpdateTime {
 		displayTs = memo.UpdatedTs
 	}
 
@@ -43,16 +40,17 @@ func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Mem
 		memoMessage.Property = convertMemoPropertyFromStore(memo.Payload.Property)
 		memoMessage.Location = convertLocationFromStore(memo.Payload.Location)
 	}
-	if memo.ParentID != nil {
-		parent, err := s.Store.GetMemo(ctx, &store.FindMemo{
-			ID:             memo.ParentID,
-			ExcludeContent: true,
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get parent memo")
-		}
-		parentName := fmt.Sprintf("%s%s", MemoNamePrefix, parent.UID)
+
+	if memo.ParentUID != nil {
+		parentName := fmt.Sprintf("%s%s", MemoNamePrefix, *memo.ParentUID)
 		memoMessage.Parent = &parentName
+	}
+
+	memoMessage.Reactions = []*v1pb.Reaction{}
+
+	for _, reaction := range reactions {
+		reactionResponse := convertReactionFromStore(reaction)
+		memoMessage.Reactions = append(memoMessage.Reactions, reactionResponse)
 	}
 
 	listMemoRelationsResponse, err := s.ListMemoRelations(ctx, &v1pb.ListMemoRelationsRequest{Name: name})
@@ -61,25 +59,14 @@ func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Mem
 	}
 	memoMessage.Relations = listMemoRelationsResponse.Relations
 
-	listMemoResourcesResponse, err := s.ListMemoResources(ctx, &v1pb.ListMemoResourcesRequest{Name: name})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list memo resources")
-	}
-	memoMessage.Resources = listMemoResourcesResponse.Resources
+	memoMessage.Attachments = []*v1pb.Attachment{}
 
-	listMemoReactionsResponse, err := s.ListMemoReactions(ctx, &v1pb.ListMemoReactionsRequest{Name: name})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list memo reactions")
+	for _, attachment := range attachments {
+		attachmentResponse := convertAttachmentFromStore(attachment)
+		memoMessage.Attachments = append(memoMessage.Attachments, attachmentResponse)
 	}
-	memoMessage.Reactions = listMemoReactionsResponse.Reactions
 
-	nodes, err := parser.Parse(tokenizer.Tokenize(memo.Content))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse content")
-	}
-	memoMessage.Nodes = convertFromASTNodes(nodes)
-
-	snippet, err := getMemoContentSnippet(memo.Content)
+	snippet, err := s.getMemoContentSnippet(memo.Content)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get memo content snippet")
 	}
@@ -137,8 +124,6 @@ func convertVisibilityFromStore(visibility store.Visibility) v1pb.Visibility {
 
 func convertVisibilityToStore(visibility v1pb.Visibility) store.Visibility {
 	switch visibility {
-	case v1pb.Visibility_PRIVATE:
-		return store.Private
 	case v1pb.Visibility_PROTECTED:
 		return store.Protected
 	case v1pb.Visibility_PUBLIC:
